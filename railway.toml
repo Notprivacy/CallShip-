@@ -1,0 +1,9 @@
+# CallShip: build del frontend (dialer) + servidor en cada deploy.
+# En Railway → Settings: deja "Root Directory" VACÍO (raíz del repo).
+# Si tenías "server", quítalo para que aquí se use este archivo y se construya el dialer.
+
+[build]
+buildCommand = "npm install && npm run build"
+
+[deploy]
+startCommand = "npm start"
