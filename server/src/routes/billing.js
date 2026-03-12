@@ -139,6 +139,54 @@ router.get('/payments', async (req, res) => {
   }
 });
 
+// Transacciones unificadas: pagos, depósitos manuales (pendientes/confirmados), invoices OxaPay (pendientes/pagados)
+router.get('/transactions', async (req, res) => {
+  try {
+    const uid = req.user.userId;
+    const [payments, manual, invoices] = await Promise.all([
+      db.pool.query(
+        `SELECT amount_usd, method, reference, created_at FROM payments WHERE user_id = $1 ORDER BY created_at DESC LIMIT 200`,
+        [uid]
+      ),
+      db.pool.query(
+        `SELECT amount_usd, currency, network, status, created_at FROM pending_manual_deposits WHERE user_id = $1 ORDER BY created_at DESC LIMIT 200`,
+        [uid]
+      ),
+      db.pool.query(
+        `SELECT amount_usd, track_id, status, created_at FROM oxapay_invoices WHERE user_id = $1 ORDER BY created_at DESC LIMIT 200`,
+        [uid]
+      ),
+    ]);
+
+    const toRow = (createdAt, amount, type, status, reference) => {
+      const d = createdAt ? new Date(createdAt) : new Date();
+      return {
+        date: d.toISOString().slice(0, 10),
+        time: d.toTimeString().slice(0, 8),
+        amount_usd: Number(amount || 0),
+        type,
+        status,
+        reference: reference || '',
+      };
+    };
+
+    const rows = [
+      ...payments.rows.map((r) => toRow(r.created_at, r.amount_usd, 'Pago', 'Completado', r.reference || r.method)),
+      ...manual.rows.map((r) => toRow(r.created_at, r.amount_usd, 'Depósito manual', r.status === 'confirmed' ? 'Confirmado' : 'Pendiente', [r.currency, r.network].filter(Boolean).join(' '))),
+      ...invoices.rows.map((r) => toRow(r.created_at, r.amount_usd, 'OxaPay', r.status === 'paid' || r.status === 'completed' ? 'Pagado' : 'Pendiente', r.track_id)),
+    ].sort((a, b) => {
+      const da = a.date + ' ' + a.time;
+      const db = b.date + ' ' + b.time;
+      return db.localeCompare(da);
+    });
+
+    res.json({ ok: true, transactions: rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, message: 'Error al listar transacciones' });
+  }
+});
+
 // Los clientes NO pueden abonarse saldo con POST /topup. Solo: Admin, OxaPay o depósito manual confirmado.
 router.post('/topup', (req, res) => {
   res.status(405).json({

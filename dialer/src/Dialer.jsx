@@ -20,6 +20,7 @@ export default function Dialer({ user, token, onLogout }) {
   const [ratesQ, setRatesQ] = useState('');
   const [balance, setBalance] = useState(0);
   const [payments, setPayments] = useState([]);
+  const [transactions, setTransactions] = useState([]);
   const [topupAmount, setTopupAmount] = useState('');
   const [serverIpHint, setServerIpHint] = useState('');
   const [reportDays, setReportDays] = useState(14);
@@ -151,6 +152,11 @@ export default function Dialer({ user, token, onLogout }) {
     const p = await apiGet('/billing/payments').catch(() => ({ ok: false }));
     if (b.ok) setBalance(Number(b.balance_usd || 0));
     if (p.ok) setPayments(p.payments || []);
+  };
+
+  const loadTransactions = async () => {
+    const data = await apiGet('/billing/transactions').catch(() => ({ ok: false }));
+    if (data.ok) setTransactions(data.transactions || []);
   };
 
   const startOxaPayTopup = async () => {
@@ -387,6 +393,7 @@ export default function Dialer({ user, token, onLogout }) {
     if (active === 'billing') loadBilling();
     if (active === 'reports') loadReports();
     if (active === 'settings') loadSettings();
+    if (active === 'transactions') loadTransactions();
     if (active === 'admin-customers') { loadAdminCustomers(); loadAdminPendingDeposits(); }
     if (active === 'account-profile') loadProfile();
     if (active === 'account-sipdevices') loadSipDevices();
@@ -548,6 +555,9 @@ export default function Dialer({ user, token, onLogout }) {
           <a href="#" className={active === 'billing' ? 'cs-active' : ''} onClick={(e) => { e.preventDefault(); setActive('billing'); }}>
             <span>Billing</span> <span className="cs-badge">$</span>
           </a>
+          <a href="#" className={active === 'transactions' ? 'cs-active' : ''} onClick={(e) => { e.preventDefault(); setActive('transactions'); loadTransactions(); }}>
+            <span>Pendientes</span> <span className="cs-badge">{kpis.pending}</span>
+          </a>
           <a href="#" className={active === 'reports' ? 'cs-active' : ''} onClick={(e) => { e.preventDefault(); setActive('reports'); }}>
             <span>Reportes</span> <span className="cs-badge">MVP</span>
           </a>
@@ -577,7 +587,7 @@ export default function Dialer({ user, token, onLogout }) {
       <main className="cs-main">
         <div className="cs-topbar">
           <div>
-            <h2>{active === 'account-profile' ? 'My Profile' : active === 'account-sipdevices' ? 'SIP Devices' : active === 'account-changepassword' ? 'Change Password' : active === 'cdr' ? 'Registro CDR' : active === 'calls' ? 'Llamadas' : active === 'billing' ? 'Billing' : active === 'rates' ? 'Rates' : active === 'reports' ? 'Reportes' : active === 'settings' ? 'Settings' : active === 'products' ? 'Productos' : active === 'admin-customers' ? 'Clientes (Admin)' : 'Dashboard'}</h2>
+            <h2>{active === 'account-profile' ? 'My Profile' : active === 'account-sipdevices' ? 'SIP Devices' : active === 'account-changepassword' ? 'Change Password' : active === 'cdr' ? 'Registro CDR' : active === 'calls' ? 'Llamadas' : active === 'billing' ? 'Billing' : active === 'rates' ? 'Rates' : active === 'reports' ? 'Reportes' : active === 'settings' ? 'Settings' : active === 'products' ? 'Productos' : active === 'transactions' ? 'Pendientes / Transacciones' : active === 'admin-customers' ? 'Clientes (Admin)' : 'Dashboard'}</h2>
             <div style={{ marginTop: 4, color: 'rgba(229,231,235,0.55)', fontSize: 12 }}>
               {active === 'account-profile'
                 ? 'Tu perfil y datos de cuenta'
@@ -589,6 +599,8 @@ export default function Dialer({ user, token, onLogout }) {
                 ? 'Registro de llamadas con fecha, hora, duración y disposición'
                 : active === 'admin-customers'
                 ? 'Gestión de clientes: saldo, estado y datos de contacto'
+                : active === 'transactions'
+                ? 'Todas tus transacciones: pagos, depósitos manuales e invoices OxaPay con fecha, hora y estado'
                 : 'Resumen rápido y registro de actividad'}
             </div>
           </div>
@@ -689,7 +701,13 @@ export default function Dialer({ user, token, onLogout }) {
             <div className="hint">Clic para ver registro (CDR)</div>
           </button>
 
-          <div className="cs-kpi cs-kpi-color cs-kpi-usa-flag">
+          <button
+            type="button"
+            className="cs-kpi cs-kpi-color cs-kpi-usa-flag"
+            style={{ textAlign: 'left', cursor: 'pointer', width: '100%' }}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setActive('transactions'); loadTransactions(); }}
+            title="Ver transacciones (pagos, depósitos, OxaPay)"
+          >
             <div className="cs-kpi-top">
               <div className="label">Pendientes</div>
               <div className="cs-kpi-icon" title="Pendientes">
@@ -697,8 +715,8 @@ export default function Dialer({ user, token, onLogout }) {
               </div>
             </div>
             <div className="value">{kpis.pending}</div>
-            <div className="hint">Estado “nueva”</div>
-          </div>
+            <div className="hint">Clic para ver transacciones</div>
+          </button>
 
           <button
             type="button"
@@ -814,6 +832,52 @@ export default function Dialer({ user, token, onLogout }) {
             </form>
           </section>
         </div>
+        )}
+
+        {active === 'transactions' && (
+        <section className="cs-card" style={{ marginTop: 16 }}>
+          <div className="cs-section-head">
+            <h3>Transacciones</h3>
+            <button className="cs-link-btn" type="button" onClick={loadTransactions}>Refrescar</button>
+          </div>
+          <p className="cs-muted" style={{ marginBottom: 12 }}>
+            Pagos completados, depósitos manuales (pendientes o confirmados) e invoices OxaPay (pendientes o pagados).
+          </p>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="cs-table">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Hora</th>
+                  <th>Monto (USD)</th>
+                  <th>Tipo</th>
+                  <th>Estado</th>
+                  <th>Referencia</th>
+                </tr>
+              </thead>
+              <tbody>
+                {transactions.length === 0 ? (
+                  <tr><td colSpan="6" className="cs-muted">Aún no hay transacciones.</td></tr>
+                ) : (
+                  transactions.map((t, i) => (
+                    <tr key={i}>
+                      <td>{t.date}</td>
+                      <td>{t.time}</td>
+                      <td><strong>${Number(t.amount_usd || 0).toFixed(2)}</strong></td>
+                      <td>{t.type || '—'}</td>
+                      <td>
+                        <span className={t.status === 'Completado' || t.status === 'Confirmado' || t.status === 'Pagado' ? 'cs-tag cs-tag-new' : 'cs-tag'} style={{ opacity: t.status === 'Pendiente' ? 0.85 : 1 }}>
+                          {t.status || '—'}
+                        </span>
+                      </td>
+                      <td style={{ color: 'rgba(229,231,235,0.7)', fontSize: 12 }}>{t.reference || '—'}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
         )}
 
         {active === 'calls' && (
