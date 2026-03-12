@@ -4,6 +4,7 @@
  */
 require('dotenv').config();
 const path = require('path');
+const fs = require('fs');
 const express = require('express');
 const cors = require('cors');
 const db = require('./db');
@@ -20,7 +21,6 @@ app.use(express.static(publicDir));
 // SPA: rutas no-API sirven index.html (para producción con frontend en /public)
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) return next();
-  const fs = require('fs');
   const indexFile = path.join(publicDir, 'index.html');
   if (!fs.existsSync(publicDir) || !fs.existsSync(indexFile)) return next();
   const p = path.join(publicDir, req.path);
@@ -49,6 +49,20 @@ app.get('/api/ping', async (req, res) => {
 
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, service: 'callship-server' });
+});
+
+// Para verificar qué build está desplegado (abre https://www.callship.us/api/build-info)
+app.get('/api/build-info', (req, res) => {
+  const buildFile = path.join(publicDir, 'build.txt');
+  try {
+    if (fs.existsSync(buildFile)) {
+      const content = fs.readFileSync(buildFile, 'utf8').trim();
+      return res.json({ ok: true, build: content, hasPublic: true });
+    }
+    return res.json({ ok: false, message: 'No existe build.txt', hasPublic: fs.existsSync(publicDir) });
+  } catch (e) {
+    return res.json({ ok: false, error: e.message, hasPublic: fs.existsSync(publicDir) });
+  }
 });
 
 (async () => {
