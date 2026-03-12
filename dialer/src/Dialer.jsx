@@ -492,11 +492,9 @@ export default function Dialer({ user, token, onLogout }) {
           <a href="#" className={active === 'settings' ? 'cs-active' : ''} onClick={(e) => { e.preventDefault(); setActive('settings'); }}>
             <span>Settings</span> <span className="cs-badge">MVP</span>
           </a>
-          {user?.username === 'medinax6' && (
-            <a href="#" className={active === 'admin-customers' ? 'cs-active' : ''} onClick={(e) => { e.preventDefault(); setActive('admin-customers'); }}>
-              <span>Clientes</span> <span className="cs-badge">Admin</span>
-            </a>
-          )}
+          <a href="#" className={active === 'admin-customers' ? 'cs-active' : ''} onClick={(e) => { e.preventDefault(); setActive('admin-customers'); }}>
+            <span>Clientes</span> <span className="cs-badge">Admin</span>
+          </a>
         </nav>
         <div className="cs-divider" />
         <div style={{ padding: 12, marginTop: 14 }}>
@@ -1132,7 +1130,7 @@ export default function Dialer({ user, token, onLogout }) {
           </section>
         )}
 
-        {active === 'admin-customers' && user?.username === 'medinax6' && (
+        {active === 'admin-customers' && (
           <section className="cs-card" style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'minmax(0, 2.2fr) minmax(0, 1.8fr)', gap: 20 }}>
             <div>
               <div className="cs-section-head">
