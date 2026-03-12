@@ -148,6 +148,18 @@ async function initSqlite() {
       note TEXT,
       created_at TEXT DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS pending_manual_deposits (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      amount_usd REAL NOT NULL,
+      currency TEXT NOT NULL,
+      network TEXT,
+      tx_hash TEXT,
+      status TEXT DEFAULT 'pending',
+      created_at TEXT DEFAULT (datetime('now')),
+      confirmed_at TEXT
+    );
   `);
 
   sqliteDb = sqlDb;
@@ -163,6 +175,7 @@ async function initSqlite() {
   try { sqliteDb.exec(`ALTER TABLE sip_devices ADD COLUMN voicemail INTEGER DEFAULT 1`); } catch {}
   try { sqliteDb.exec(`ALTER TABLE sip_devices ADD COLUMN status INTEGER DEFAULT 1`); } catch {}
   try { sqliteDb.exec(`ALTER TABLE sip_devices ADD COLUMN modified_at TEXT`); } catch {}
+  try { sqliteDb.exec(`CREATE TABLE IF NOT EXISTS pending_manual_deposits (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES users(id), amount_usd REAL NOT NULL, currency TEXT NOT NULL, network TEXT, tx_hash TEXT, status TEXT DEFAULT 'pending', created_at TEXT DEFAULT (datetime('now')), confirmed_at TEXT)`); } catch {}
 
   // API tipo \"pg\" para que el resto del código no cambie
   pool = {
@@ -231,13 +244,17 @@ async function initSqlite() {
 // --- PostgreSQL ---
 async function initPg() {
   const { Pool } = require('pg');
-  const p = new Pool({
-    host: process.env.PG_HOST || 'localhost',
-    port: parseInt(process.env.PG_PORT || '5432', 10),
-    user: process.env.PG_USER || 'callship',
-    password: process.env.PG_PASSWORD || 'callship123',
-    database: process.env.PG_DATABASE || 'callship_db',
-  });
+  // En Railway (y otros PaaS) al añadir Postgres te dan DATABASE_URL: los usuarios persisten entre deploys
+  const connectionString = process.env.DATABASE_URL;
+  const p = connectionString
+    ? new Pool({ connectionString, ssl: connectionString.includes('localhost') ? false : { rejectUnauthorized: false } })
+    : new Pool({
+        host: process.env.PG_HOST || 'localhost',
+        port: parseInt(process.env.PG_PORT || '5432', 10),
+        user: process.env.PG_USER || 'callship',
+        password: process.env.PG_PASSWORD || 'callship123',
+        database: process.env.PG_DATABASE || 'callship_db',
+      });
 
   await p.query(`
     CREATE TABLE IF NOT EXISTS users (
@@ -379,6 +396,20 @@ async function initPg() {
     );
   `);
 
+  await p.query(`
+    CREATE TABLE IF NOT EXISTS pending_manual_deposits (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      amount_usd NUMERIC(12,4) NOT NULL,
+      currency VARCHAR(20) NOT NULL,
+      network VARCHAR(60),
+      tx_hash VARCHAR(255),
+      status VARCHAR(30) DEFAULT 'pending',
+      created_at TIMESTAMP DEFAULT NOW(),
+      confirmed_at TIMESTAMP
+    );
+  `);
+
   console.log('Tablas base listas (PostgreSQL)');
   pool = p;
   db.pool = pool;
@@ -386,8 +417,11 @@ async function initPg() {
 }
 
 async function init() {
-  if (USE_SQLITE) {
+  if (USE_SQLITE && !process.env.DATABASE_URL) {
     return await initSqlite();
+  }
+  if (process.env.DATABASE_URL) {
+    return await initPg();
   }
   try {
     return await initPg();

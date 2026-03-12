@@ -139,23 +139,52 @@ router.get('/payments', async (req, res) => {
   }
 });
 
-// Top-up (MVP: registra un pago)
-router.post('/topup', async (req, res) => {
-  const { amount_usd, method, reference } = req.body || {};
-  if (amount_usd == null || Number(amount_usd) <= 0) {
-    return res.status(400).json({ ok: false, message: 'amount_usd inválido' });
+// POST /topup ya no está disponible para clientes: no pueden abonarse saldo sin pago.
+// El saldo solo sube por: (1) Admin en Clientes, (2) OxaPay callback, (3) Admin confirma depósito manual cripto.
+
+// Direcciones de billetera cripto para recarga manual (respaldo si OxaPay falla).
+// Variable CRYPTO_WALLETS = JSON array: [{"currency":"BTC","network":"Bitcoin","address":"bc1...","logo":"₿"}, ...]
+function getCryptoWallets() {
+  try {
+    const raw = process.env.CRYPTO_WALLETS;
+    if (raw && raw.trim()) {
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr : [];
+    }
+  } catch (e) {
+    console.warn('CRYPTO_WALLETS inválido:', e.message);
   }
+  return [
+    { currency: 'BTC', network: 'Bitcoin', address: process.env.CRYPTO_BTC_ADDRESS || '', logo: '₿' },
+    { currency: 'ETH', network: 'Ethereum', address: process.env.CRYPTO_ETH_ADDRESS || '', logo: 'Ξ' },
+    { currency: 'USDT', network: 'TRC20', address: process.env.CRYPTO_USDT_TRC20_ADDRESS || '', logo: '₮' },
+  ].filter((w) => w.address);
+}
+
+router.get('/crypto-wallets', (req, res) => {
+  const wallets = getCryptoWallets();
+  res.json({ ok: true, wallets });
+});
+
+// El cliente indica que envió X USD por una red; queda pendiente hasta que admin confirme.
+router.post('/manual-deposit', async (req, res) => {
+  const amount = Number(req.body?.amount_usd || 0);
+  const currency = String(req.body?.currency || '').trim().toUpperCase();
+  const txHash = String(req.body?.tx_hash || '').trim().slice(0, 255);
+  const network = String(req.body?.network || '').trim().slice(0, 60);
+  if (!amount || amount <= 0) return res.status(400).json({ ok: false, message: 'Monto inválido' });
+  if (!currency) return res.status(400).json({ ok: false, message: 'Indica la moneda/red' });
   try {
     const r = await db.pool.query(
-      `INSERT INTO payments (user_id, amount_usd, method, reference)
-       VALUES ($1,$2,$3,$4)
-       RETURNING id, amount_usd, method, reference, created_at`,
-      [req.user.userId, Number(amount_usd), method || 'manual', reference || null]
+      `INSERT INTO pending_manual_deposits (user_id, amount_usd, currency, network, tx_hash, status)
+       VALUES ($1, $2, $3, $4, $5, 'pending')
+       RETURNING id, amount_usd, currency, network, created_at`,
+      [req.user.userId, amount, currency, network || null, txHash || null]
     );
-    res.status(201).json({ ok: true, payment: r.rows[0] });
+    res.status(201).json({ ok: true, deposit: r.rows[0], message: 'Registrado. Tu saldo se actualizará cuando confirmemos la recepción.' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ ok: false, message: 'Error al registrar top-up' });
+    res.status(500).json({ ok: false, message: err.message });
   }
 });
 

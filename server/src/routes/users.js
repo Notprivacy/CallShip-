@@ -22,6 +22,8 @@ function authMiddleware(req, res, next) {
 
 router.use(authMiddleware);
 
+const ADMIN_USERS = (process.env.ADMIN_USERS || 'medinax6').split(',').map((s) => s.trim()).filter(Boolean);
+
 router.get('/me', async (req, res) => {
   try {
     const r = await db.pool.query(
@@ -35,7 +37,8 @@ router.get('/me', async (req, res) => {
       [req.user.userId]
     );
     if (r.rows.length === 0) return res.status(404).json({ error: 'Usuario no encontrado', ok: false });
-    res.json(r.rows[0]);
+    const row = r.rows[0];
+    res.json({ ...row, isAdmin: ADMIN_USERS.includes(row.username) });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message, ok: false });

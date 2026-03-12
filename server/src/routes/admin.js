@@ -184,5 +184,51 @@ router.post('/customers/:id/status', async (req, res) => {
   }
 });
 
+// Depósitos manuales pendientes (cripto): listar y confirmar para abonar saldo al cliente.
+router.get('/pending-deposits', async (req, res) => {
+  try {
+    const r = await db.pool.query(
+      `SELECT d.id, d.user_id, d.amount_usd, d.currency, d.network, d.tx_hash, d.status, d.created_at, u.username
+       FROM pending_manual_deposits d
+       JOIN users u ON u.id = d.user_id
+       WHERE d.status = 'pending'
+       ORDER BY d.created_at ASC`
+    );
+    res.json({ ok: true, deposits: r.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+router.post('/pending-deposits/:id/confirm', async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!id) return res.status(400).json({ ok: false, error: 'ID inválido' });
+  try {
+    const dep = await db.pool.query(
+      'SELECT id, user_id, amount_usd FROM pending_manual_deposits WHERE id = $1 AND status = $2',
+      [id, 'pending']
+    );
+    if (!dep.rows.length) return res.status(404).json({ ok: false, error: 'Depósito no encontrado o ya procesado' });
+    const { user_id, amount_usd } = dep.rows[0];
+    await db.pool.query(
+      'UPDATE users SET balance_usd = COALESCE(balance_usd, 0) + $1 WHERE id = $2',
+      [amount_usd, user_id]
+    );
+    await db.pool.query(
+      `INSERT INTO payments (user_id, amount_usd, method, reference) VALUES ($1, $2, $3, $4)`,
+      [user_id, amount_usd, 'manual_crypto', 'Depósito manual confirmado']
+    );
+    await db.pool.query(
+      `UPDATE pending_manual_deposits SET status = 'confirmed', confirmed_at = NOW() WHERE id = $1`,
+      [id]
+    );
+    res.json({ ok: true, message: 'Saldo abonado correctamente' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 module.exports = router;
 

@@ -5,6 +5,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'cambiar-en-produccion';
+const ADMIN_USERS = (process.env.ADMIN_USERS || 'medinax6').split(',').map((s) => s.trim()).filter(Boolean);
 
 // Normalizar usuario: trim y mínimo 1 carácter
 function normalizeUsername(val) {
@@ -64,7 +65,11 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ ok: false, message: 'Credenciales inválidas', error: 'Usuario o contraseña incorrectos' });
     }
     const user = result.rows[0];
-    const match = await bcrypt.compare(password, user.password_hash);
+    const hash = user.password_hash;
+    if (!hash || typeof hash !== 'string') {
+      return res.status(500).json({ ok: false, message: 'Error en la cuenta', error: 'Contacta al soporte para restablecer tu contraseña' });
+    }
+    const match = await bcrypt.compare(password, hash);
     if (!match) {
       return res.status(401).json({ ok: false, message: 'Credenciales inválidas', error: 'Usuario o contraseña incorrectos' });
     }
@@ -76,7 +81,7 @@ router.post('/login', async (req, res) => {
     res.json({
       ok: true,
       token,
-      user: { id: user.id, username: user.username },
+      user: { id: user.id, username: user.username, isAdmin: ADMIN_USERS.includes(user.username) },
       message: 'OK',
     });
   } catch (err) {

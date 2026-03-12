@@ -30,6 +30,12 @@ export default function Dialer({ user, token, onLogout }) {
   const [adminSelectedCustomer, setAdminSelectedCustomer] = useState(null);
   const [adminTopupAmount, setAdminTopupAmount] = useState('');
   const [adminStatusMsg, setAdminStatusMsg] = useState('');
+  const [adminPendingDeposits, setAdminPendingDeposits] = useState([]);
+  const [showCryptoManual, setShowCryptoManual] = useState(false);
+  const [cryptoWallets, setCryptoWallets] = useState([]);
+  const [manualDepositCurrency, setManualDepositCurrency] = useState('');
+  const [manualDepositTxHash, setManualDepositTxHash] = useState('');
+  const [manualDepositSending, setManualDepositSending] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [profileData, setProfileData] = useState(null);
   const [sipDevices, setSipDevices] = useState([]);
@@ -174,30 +180,50 @@ export default function Dialer({ user, token, onLogout }) {
     }
   };
 
-  const doManualTopup = async () => {
+  const loadCryptoWallets = async () => {
+    const data = await apiGet('/billing/crypto-wallets').catch(() => ({ ok: false }));
+    if (data.ok) setCryptoWallets(data.wallets || []);
+  };
+
+  const submitManualDeposit = async () => {
     const amt = Number(topupAmount);
     if (!amt || amt <= 0) {
-      setStatus('Pon un monto válido.');
+      setStatus('Pon un monto válido (USD).');
+      return;
+    }
+    if (!manualDepositCurrency) {
+      setStatus('Selecciona la moneda/red con la que pagaste.');
       return;
     }
     setStatus('');
+    setManualDepositSending(true);
     try {
-      const res = await fetch(`${API}/billing/topup`, {
+      const res = await fetch(`${API}/billing/manual-deposit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ amount_usd: amt, method: 'manual', reference: '' }),
+        body: JSON.stringify({
+          amount_usd: amt,
+          currency: manualDepositCurrency,
+          tx_hash: manualDepositTxHash || undefined,
+          network: cryptoWallets.find((w) => w.currency === manualDepositCurrency)?.network,
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) {
-        setStatus(data.message || 'Error al recargar');
+        setStatus(data.message || 'Error al registrar');
         return;
       }
-      setTopupAmount('');
-      setStatus('Recarga aplicada correctamente.');
-      loadBilling();
+      setStatus(data.message || 'Registrado. Tu saldo se actualizará cuando confirmemos la recepción.');
+      setManualDepositTxHash('');
+      setManualDepositSending(false);
     } catch {
       setStatus('Error de conexión.');
+      setManualDepositSending(false);
     }
+  };
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard?.writeText(text).then(() => setStatus('Dirección copiada')).catch(() => {});
   };
 
   const fetchServerIp = async () => {
@@ -231,6 +257,30 @@ export default function Dialer({ user, token, onLogout }) {
     } else {
       setAdminCustomers([]);
       if (data.error) setAdminStatusMsg(data.error);
+    }
+  };
+
+  const loadAdminPendingDeposits = async () => {
+    const data = await apiGet('/admin/pending-deposits').catch(() => ({ ok: false }));
+    if (data.ok) setAdminPendingDeposits(data.deposits || []);
+  };
+
+  const confirmPendingDeposit = async (id) => {
+    try {
+      const res = await fetch(`${API}/admin/pending-deposits/${id}/confirm`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) {
+        setAdminStatusMsg(data.error || 'No se pudo confirmar');
+        return;
+      }
+      setAdminStatusMsg('Saldo abonado correctamente.');
+      await loadAdminPendingDeposits();
+      await loadAdminCustomers();
+    } catch {
+      setAdminStatusMsg('Error de conexión.');
     }
   };
 
@@ -327,12 +377,16 @@ export default function Dialer({ user, token, onLogout }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    if (active === 'admin-customers' && !user?.isAdmin) setActive('dashboard');
+  }, [active, user?.isAdmin]);
+
+  useEffect(() => {
     if (active === 'products') loadProducts();
     if (active === 'rates') loadRates(ratesQ);
     if (active === 'billing') loadBilling();
     if (active === 'reports') loadReports();
     if (active === 'settings') loadSettings();
-    if (active === 'admin-customers') loadAdminCustomers();
+    if (active === 'admin-customers') { loadAdminCustomers(); loadAdminPendingDeposits(); }
     if (active === 'account-profile') loadProfile();
     if (active === 'account-sipdevices') loadSipDevices();
   }, [active]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -499,9 +553,11 @@ export default function Dialer({ user, token, onLogout }) {
           <a href="#" className={active === 'settings' ? 'cs-active' : ''} onClick={(e) => { e.preventDefault(); setActive('settings'); }}>
             <span>Settings</span> <span className="cs-badge">MVP</span>
           </a>
-          <a href="#" className={active === 'admin-customers' ? 'cs-active' : ''} onClick={(e) => { e.preventDefault(); setActive('admin-customers'); }}>
-            <span>Clientes</span> <span className="cs-badge">Admin</span>
-          </a>
+          {user?.isAdmin && (
+            <a href="#" className={active === 'admin-customers' ? 'cs-active' : ''} onClick={(e) => { e.preventDefault(); setActive('admin-customers'); }}>
+              <span>Clientes</span> <span className="cs-badge">Admin</span>
+            </a>
+          )}
         </nav>
         <div className="cs-divider" />
         <div style={{ padding: 12, marginTop: 14 }}>
@@ -1031,10 +1087,56 @@ export default function Dialer({ user, token, onLogout }) {
                     <button className="cs-btn cs-btn-primary" type="button" onClick={startOxaPayTopup}>
                       Crypto (OxaPay)
                     </button>
-                    <button className="cs-btn" type="button" onClick={doManualTopup} style={{ border: '1px solid rgba(255,255,255,0.3)' }}>
-                      Recarga manual
+                    <button className="cs-btn" type="button" onClick={() => { setShowCryptoManual(!showCryptoManual); setStatus(''); if (!showCryptoManual) loadCryptoWallets(); }} style={{ border: '1px solid rgba(255,255,255,0.3)' }}>
+                      {showCryptoManual ? 'Ocultar recarga manual' : 'Recarga manual (cripto)'}
                     </button>
                   </div>
+                  {showCryptoManual && (
+                    <div style={{ marginTop: 16, padding: 16, background: 'rgba(0,0,0,0.2)', borderRadius: 8 }}>
+                      <h4 style={{ margin: '0 0 12px', fontSize: 15 }}>Enviar a una de estas billeteras</h4>
+                      <p style={{ color: 'rgba(229,231,235,0.7)', fontSize: 12, marginBottom: 12 }}>Indica el monto arriba (USD). Después de enviar, rellena "Ya envié" para que al confirmar la recepción te acreditemos el saldo.</p>
+                      {cryptoWallets.length === 0 ? (
+                        <p className="cs-muted">No hay direcciones configuradas. El administrador debe añadir CRYPTO_*_ADDRESS o CRYPTO_WALLETS.</p>
+                      ) : (
+                        <>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            {cryptoWallets.map((w) => (
+                              <div key={`${w.currency}-${w.network}`} style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: 10, background: 'rgba(255,255,255,0.05)', borderRadius: 6 }}>
+                                <span style={{ fontSize: 24, minWidth: 32 }}>{w.logo || w.currency.charAt(0)}</span>
+                                <div>
+                                  <strong>{w.currency}</strong>
+                                  <span style={{ color: 'rgba(229,231,235,0.6)', marginLeft: 8 }}>{w.network}</span>
+                                </div>
+                                <code style={{ flex: 1, minWidth: 0, wordBreak: 'break-all', fontSize: 12 }}>{w.address}</code>
+                                <button type="button" className="cs-btn" style={{ padding: '6px 10px' }} onClick={() => copyToClipboard(w.address)}>Copiar</button>
+                              </div>
+                            ))}
+                          </div>
+                          <div style={{ marginTop: 16 }}>
+                            <h4 style={{ margin: '0 0 8px', fontSize: 14 }}>Ya envié el pago</h4>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end' }}>
+                              <div>
+                                <label style={{ fontSize: 11, color: 'rgba(229,231,235,0.6)' }}>Moneda / Red</label>
+                                <select className="cs-field" value={manualDepositCurrency} onChange={(e) => setManualDepositCurrency(e.target.value)} style={{ marginLeft: 8, minWidth: 120 }}>
+                                  <option value="">Selecciona</option>
+                                  {cryptoWallets.map((w) => (
+                                    <option key={`${w.currency}-${w.network}`} value={w.currency}>{w.currency} ({w.network})</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div>
+                                <label style={{ fontSize: 11, color: 'rgba(229,231,235,0.6)' }}>TX Hash / Ref (opcional)</label>
+                                <input className="cs-field" value={manualDepositTxHash} onChange={(e) => setManualDepositTxHash(e.target.value)} placeholder="Ej. 0x..." style={{ marginLeft: 8, width: 220 }} />
+                              </div>
+                              <button className="cs-btn cs-btn-primary" type="button" onClick={submitManualDeposit} disabled={manualDepositSending}>
+                                {manualDepositSending ? 'Enviando…' : 'Registrar envío'}
+                              </button>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
                   <p style={{ marginTop: 12, fontSize: 12, color: 'rgba(229,231,235,0.6)' }}>
                     Si OxaPay da error de clave: usa <strong>Merchant API Key</strong> (no Payout) y añade la IP del servidor.{' '}
                     <button type="button" className="cs-link-btn" style={{ padding: 0, fontSize: 12 }} onClick={fetchServerIp}>
@@ -1138,7 +1240,45 @@ export default function Dialer({ user, token, onLogout }) {
         )}
 
         {active === 'admin-customers' && (
-          <section className="cs-card" style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'minmax(0, 2.2fr) minmax(0, 1.8fr)', gap: 20 }}>
+          <>
+            {adminPendingDeposits.length > 0 && (
+              <section className="cs-card" style={{ marginTop: 16 }}>
+                <div className="cs-section-head">
+                  <h3>Depósitos manuales pendientes (cripto)</h3>
+                  <button className="cs-link-btn" type="button" onClick={loadAdminPendingDeposits}>Refrescar</button>
+                </div>
+                <p style={{ color: 'rgba(229,231,235,0.65)', fontSize: 12, marginBottom: 10 }}>Cuando el saldo llegue a tu billetera, confirma para abonar al cliente.</p>
+                <table className="cs-table">
+                  <thead>
+                    <tr>
+                      <th>Usuario</th>
+                      <th>Monto (USD)</th>
+                      <th>Red</th>
+                      <th>TX / Ref</th>
+                      <th>Fecha</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {adminPendingDeposits.map((d) => (
+                      <tr key={d.id}>
+                        <td><strong>{d.username}</strong></td>
+                        <td>${Number(d.amount_usd).toFixed(2)}</td>
+                        <td>{d.currency} {d.network ? `(${d.network})` : ''}</td>
+                        <td style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis' }} title={d.tx_hash}>{d.tx_hash || '—'}</td>
+                        <td style={{ fontSize: 12, color: 'rgba(229,231,235,0.7)' }}>{new Date(d.created_at).toLocaleString()}</td>
+                        <td>
+                          <button className="cs-btn cs-btn-primary" type="button" onClick={() => confirmPendingDeposit(d.id)} style={{ padding: '6px 12px' }}>
+                            Confirmar y abonar
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </section>
+            )}
+            <section className="cs-card" style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'minmax(0, 2.2fr) minmax(0, 1.8fr)', gap: 20 }}>
             <div>
               <div className="cs-section-head">
                 <h3>Clientes</h3>
@@ -1299,6 +1439,7 @@ export default function Dialer({ user, token, onLogout }) {
               )}
             </div>
           </section>
+          </>
         )}
 
         {active === 'account-profile' && (

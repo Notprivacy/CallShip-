@@ -77,3 +77,18 @@ Si me dices con quién registraste el dominio (Namecheap, Cloudflare, etc.) y si
 | 4 | Ajustar SSL según si lo da el registrador o el servidor (ver arriba). |
 
 Cuando el DNS y el SSL estén bien, al entrar a **https://tudominio.com** (ej. https://callship.com) cargará el dialer y la API en la misma dirección; no hace falta cambiar nada en el código porque la app ya usa rutas relativas `/api`.
+
+---
+
+## 6. Railway: usar PostgreSQL para que los usuarios no se pierdan
+
+Si despliegas en **Railway** sin base de datos externa, la app usa SQLite dentro del contenedor. **En cada redeploy el contenedor es nuevo y la base se borra**: las cuentas desaparecen y los clientes ven "Usuario o contraseña incorrectos".
+
+**Solución:** añadir **PostgreSQL** en Railway para que los usuarios persistan:
+
+1. En tu proyecto de Railway → **"+ New"** → **"Database"** → **"PostgreSQL"**.
+2. Cuando esté creado, entra al servicio de **CallShip** (tu API) → **Variables**.
+3. Railway suele inyectar **`DATABASE_URL`** al enlazar el servicio con la base; si no, en el panel de PostgreSQL copia **Variables** → **DATABASE_URL** y pégalas en las variables del servicio CallShip.
+4. **Redeploy** el servicio CallShip.
+
+A partir de ahí la app usará PostgreSQL y las cuentas se mantendrán entre deploys; el login dejará de fallar por base de datos vacía.
