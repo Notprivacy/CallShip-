@@ -1,0 +1,15 @@
+LOS CAMBIOS NO SE VEN EN WWW.CALLSHIP.US HASTA QUE SUBAS server/public A GIT.
+
+Ejecuta estos comandos EN LA RAÍZ del proyecto (donde está PREPARAR-DEPLOY.bat):
+
+  git add server/public server/src
+  git status
+  git commit -m "Deploy frontend: Clientes solo admin, hover KPIs"
+  git push
+
+IMPORTANTE: En "git status" DEBE aparecer server/public. Si no aparece, los cambios no se verán en la web.
+
+Después del push: Railway desplegará solo. En www.callship.us haz Ctrl+F5.
+Para comprobar que es el build nuevo: abre https://www.callship.us/build.txt
+
+En Railway: Variables - ADMIN_USERS debe ser SOLO el usuario admin (ej: medinax6). No incluyas nicol2.

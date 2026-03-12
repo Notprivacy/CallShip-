@@ -31,5 +31,19 @@ if (fs.existsSync(dest)) {
   fs.rmSync(dest, { recursive: true });
 }
 copyRecursive(src, dest);
+
+// Marca de build para verificar en producción (abre https://www.callship.us/build.txt)
+const buildId = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+fs.writeFileSync(path.join(dest, 'build.txt'), `CallShip frontend build\n${buildId}\n`, 'utf8');
+
+// Comentario en index.html para "Ver código fuente" en el navegador
+const indexPath = path.join(dest, 'index.html');
+let indexHtml = fs.readFileSync(indexPath, 'utf8');
+if (!indexHtml.includes('build:')) {
+  indexHtml = indexHtml.replace('<head>', '<head>\n    <!-- build: ' + buildId + ' -->');
+  fs.writeFileSync(indexPath, indexHtml, 'utf8');
+}
+
 console.log('Build del dialer copiado a server/public');
-console.log('Para producción: cd server && npm start');
+console.log('Build ID:', buildId);
+console.log('Para producción: sube server/public a Git (ver DEPLOY-PASOS.txt) y luego cd server && npm start');

@@ -139,8 +139,13 @@ router.get('/payments', async (req, res) => {
   }
 });
 
-// POST /topup ya no está disponible para clientes: no pueden abonarse saldo sin pago.
-// El saldo solo sube por: (1) Admin en Clientes, (2) OxaPay callback, (3) Admin confirma depósito manual cripto.
+// Los clientes NO pueden abonarse saldo con POST /topup. Solo: Admin, OxaPay o depósito manual confirmado.
+router.post('/topup', (req, res) => {
+  res.status(405).json({
+    ok: false,
+    message: 'Recarga manual desactivada. Usa Crypto (OxaPay) o indica tu envío en "Recarga manual (cripto)" y espera la confirmación.',
+  });
+});
 
 // Direcciones de billetera cripto para recarga manual (respaldo si OxaPay falla).
 // Variable CRYPTO_WALLETS = JSON array: [{"currency":"BTC","network":"Bitcoin","address":"bc1...","logo":"₿"}, ...]

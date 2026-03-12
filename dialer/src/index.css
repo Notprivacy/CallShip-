@@ -416,6 +416,16 @@ button, input { font: inherit; }
   overflow: hidden;
   border-color: rgba(255,255,255,0.10);
   background: rgba(255,255,255,0.05);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.cs-kpi.cs-kpi-color:hover{
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0,0,0,0.35);
+}
+.cs-kpi.cs-kpi-color:hover .cs-kpi-icon{
+  transform: scale(1.12) translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.35);
 }
 .cs-kpi.cs-kpi-color::before{
   content:"";
@@ -456,6 +466,7 @@ button, input { font: inherit; }
   background: rgba(255,255,255,0.2);
   border: 1px solid rgba(255,255,255,0.7);
   color: #ffffff;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
 }
 .cs-kpi.cs-kpi-usa-flag .cs-kpi-icon svg{
   width: 24px;
