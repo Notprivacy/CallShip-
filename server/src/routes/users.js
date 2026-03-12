@@ -26,16 +26,31 @@ const ADMIN_USERS = (process.env.ADMIN_USERS || 'medinax6').split(',').map((s) =
 
 router.get('/me', async (req, res) => {
   try {
-    const r = await db.pool.query(
-      `SELECT u.id, u.username, u.created_at,
-        p.account_number, p.company, p.first_name, p.last_name,
-        p.telephone1, p.telephone2, p.email, p.address1, p.address2,
-        p.city, p.province_state, p.zip_postal_code, p.country, p.timezone, p.fax_number
-       FROM users u
-       LEFT JOIN user_profiles p ON p.user_id = u.id
-       WHERE u.id = $1`,
-      [req.user.userId]
-    );
+    let r;
+    try {
+      r = await db.pool.query(
+        `SELECT u.id, u.username, u.created_at,
+          p.account_number, p.company, p.first_name, p.last_name,
+          p.telephone1, p.telephone2, p.email, p.address1, p.address2,
+          p.city, p.province_state, p.zip_postal_code, p.country, p.timezone, p.fax_number
+         FROM users u
+         LEFT JOIN user_profiles p ON p.user_id = u.id
+         WHERE u.id = $1`,
+        [req.user.userId]
+      );
+    } catch (joinErr) {
+      if (joinErr.message && joinErr.message.includes('user_profiles')) {
+        r = await db.pool.query(
+          'SELECT id, username, created_at FROM users WHERE id = $1',
+          [req.user.userId]
+        );
+        if (r.rows.length > 0) {
+          const row = r.rows[0];
+          return res.json({ ...row, isAdmin: ADMIN_USERS.includes(row.username) });
+        }
+      }
+      throw joinErr;
+    }
     if (r.rows.length === 0) return res.status(404).json({ error: 'Usuario no encontrado', ok: false });
     const row = r.rows[0];
     res.json({ ...row, isAdmin: ADMIN_USERS.includes(row.username) });
