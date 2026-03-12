@@ -19,6 +19,8 @@ export default function Dialer({ user, token, onLogout }) {
   const [rates, setRates] = useState([]);
   const [ratesQ, setRatesQ] = useState('');
   const [balance, setBalance] = useState(0);
+  const [paymentProgress, setPaymentProgress] = useState(0);
+  const [lastLoyaltyBonusAt, setLastLoyaltyBonusAt] = useState(null);
   const [payments, setPayments] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [topupAmount, setTopupAmount] = useState('');
@@ -150,7 +152,11 @@ export default function Dialer({ user, token, onLogout }) {
   const loadBilling = async () => {
     const b = await apiGet('/billing/balance').catch(() => ({ ok: false }));
     const p = await apiGet('/billing/payments').catch(() => ({ ok: false }));
-    if (b.ok) setBalance(Number(b.balance_usd || 0));
+    if (b.ok) {
+      setBalance(Number(b.balance_usd || 0));
+      setPaymentProgress(Number(b.payment_progress ?? 0));
+      setLastLoyaltyBonusAt(b.last_loyalty_bonus_at || null);
+    }
     if (p.ok) setPayments(p.payments || []);
   };
 
@@ -404,20 +410,15 @@ export default function Dialer({ user, token, onLogout }) {
   }, [reportDays]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const kpiBalance = useMemo(() => Number(balance || 0).toFixed(2), [balance]);
-  const kpiPaymentToday = useMemo(() => {
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    const sum = (payments || [])
-      .filter((p) => p?.created_at && new Date(p.created_at) >= start)
-      .reduce((acc, p) => acc + Number(p.amount_usd || 0), 0);
-    return sum.toFixed(2);
-  }, [payments]);
-  const kpiLastPayment = useMemo(() => {
-    const p = (payments || [])[0];
-    if (!p) return null;
-    const amt = Number(p.amount_usd || 0).toFixed(2);
-    return `$${amt} · ${p.method || 'manual'}`;
-  }, [payments]);
+  const kpiPaymentLoyalty = useMemo(() => {
+    const p = Number(paymentProgress ?? 0);
+    return `${p}/100 +10%`;
+  }, [paymentProgress]);
+  const showLoyaltyCongrats = useMemo(() => {
+    if (!lastLoyaltyBonusAt) return false;
+    const t = new Date(lastLoyaltyBonusAt).getTime();
+    return (Date.now() - t) < 10 * 60 * 1000;
+  }, [lastLoyaltyBonusAt]);
 
   const handleRegisterCall = async (e) => {
     e?.preventDefault();
@@ -726,12 +727,12 @@ export default function Dialer({ user, token, onLogout }) {
           >
             <div className="cs-kpi-top">
               <div className="label">Payment</div>
-              <div className="cs-kpi-icon" title="Pago">
+              <div className="cs-kpi-icon" title="Lealtad: cada 100 USD +$10">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
               </div>
             </div>
-            <div className="value">${kpiPaymentToday}</div>
-            <div className="hint">{kpiLastPayment ? `Último: ${kpiLastPayment}` : 'Sin pagos aún'}</div>
+            <div className="value">{kpiPaymentLoyalty}</div>
+            <div className="hint">Cada 100 USD recargados recibes $10 de bono</div>
           </button>
 
           <div className="cs-kpi cs-kpi-color cs-kpi-usa-flag">
@@ -745,6 +746,13 @@ export default function Dialer({ user, token, onLogout }) {
             <div className="hint">Balance (MVP)</div>
           </div>
         </div>
+        )}
+
+        {active === 'dashboard' && showLoyaltyCongrats && (
+          <div className="cs-card" style={{ marginTop: 16, textAlign: 'center', padding: 24, background: 'linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%)', border: '1px solid rgba(34, 197, 94, 0.4)' }}>
+            <div style={{ fontSize: 28, fontWeight: 700, color: '#22c55e', marginBottom: 8 }}>¡Felicidades por tu lealtad!</div>
+            <div style={{ fontSize: 16, color: 'rgba(229,231,235,0.9)' }}>Has recibido +10% en tu balance ($10 USD). Sigue recargando y vuelve a llegar a 100 para otro bono.</div>
+          </div>
         )}
 
         {active === 'dashboard' && (
