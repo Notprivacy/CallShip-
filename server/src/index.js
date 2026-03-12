@@ -9,6 +9,14 @@ const express = require('express');
 const cors = require('cors');
 const db = require('./db');
 
+// Evitar que excepciones no capturadas o promesas rechazadas tiren el proceso sin log
+process.on('uncaughtException', (err) => {
+  console.error('uncaughtException:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('unhandledRejection:', reason);
+});
+
 const app = express();
 const PORT = process.env.PORT || 4000;
 

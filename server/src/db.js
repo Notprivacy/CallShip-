@@ -244,8 +244,9 @@ async function initSqlite() {
 // --- PostgreSQL ---
 async function initPg() {
   const { Pool } = require('pg');
-  // En Railway (y otros PaaS) al añadir Postgres te dan DATABASE_URL: los usuarios persisten entre deploys
-  const connectionString = process.env.DATABASE_URL;
+  // Railway: DATABASE_URL puede ser la URL interna (postgres.railway.internal) que a veces no resuelve.
+  // DATABASE_PUBLIC_URL es la URL pública; úsala si existe para evitar ENOTFOUND.
+  const connectionString = process.env.DATABASE_PUBLIC_URL || process.env.DATABASE_URL;
   const p = connectionString
     ? new Pool({ connectionString, ssl: connectionString.includes('localhost') ? false : { rejectUnauthorized: false } })
     : new Pool({
@@ -255,6 +256,11 @@ async function initPg() {
         password: process.env.PG_PASSWORD || 'callship123',
         database: process.env.PG_DATABASE || 'callship_db',
       });
+
+  // Evitar que errores del pool (conexión perdida, etc.) tiren el proceso
+  p.on('error', (err) => {
+    console.error('Pool PostgreSQL error (no se cierra el servidor):', err.message);
+  });
 
   await p.query(`
     CREATE TABLE IF NOT EXISTS users (
@@ -417,10 +423,11 @@ async function initPg() {
 }
 
 async function init() {
-  if (USE_SQLITE && !process.env.DATABASE_URL) {
+  const hasPg = process.env.DATABASE_URL || process.env.DATABASE_PUBLIC_URL;
+  if (USE_SQLITE && !hasPg) {
     return await initSqlite();
   }
-  if (process.env.DATABASE_URL) {
+  if (hasPg) {
     return await initPg();
   }
   try {
