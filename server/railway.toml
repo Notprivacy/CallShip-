@@ -1,0 +1,6 @@
+# Railway: Root Directory debe ser "server". Este archivo va dentro de server/.
+[build]
+buildCommand = "npm run build"
+
+[deploy]
+startCommand = "npm start"

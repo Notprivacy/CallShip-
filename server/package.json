@@ -3,9 +3,13 @@
   "version": "1.0.0",
   "description": "Servidor API para CallShip: auth, usuarios y licencias",
   "main": "src/index.js",
+  "engines": {
+    "node": ">=18 <22"
+  },
   "scripts": {
     "dev": "node src/index.js",
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "build": "echo No build step"
   },
   "keywords": ["callship", "dialer", "api"],
   "license": "UNLICENSED",
