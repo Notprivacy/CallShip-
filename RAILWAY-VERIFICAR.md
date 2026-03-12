@@ -1,4 +1,22 @@
-# Por qué no se ven los cambios en www.callship.us
+# Railway: verificar deploy y base de datos
+
+## Error "getaddrinfo ENOTFOUND postgres.railway.internal"
+
+Si la app arranca pero falla con ese error, el servicio **no puede resolver** el host interno de PostgreSQL. Usa la **URL pública**:
+
+1. En Railway → tu **servicio PostgreSQL** (no el de la web).
+2. Pestaña **Variables** o **Connect**: busca **DATABASE_PUBLIC_URL** o la opción **Public network**.
+3. Copia la URL de conexión (empieza por `postgresql://...` con un host tipo `xxxx.railway.app` o una IP, **no** `postgres.railway.internal`).
+4. En tu **servicio de la web** (CallShip) → **Variables** → añade:
+   - **Nombre:** `DATABASE_PUBLIC_URL`
+   - **Valor:** la URL que copiaste (la pública).
+5. Guarda y haz **Redeploy** del servicio web.
+
+El código ya usa `DATABASE_PUBLIC_URL` si existe; si no, usa `DATABASE_URL`. Así evitas el ENOTFOUND.
+
+---
+
+## Por qué no se ven los cambios en www.callship.us
 
 Si ya hiciste `git add server/public`, `git commit` y `git push` y la web sigue igual, el fallo está en **Railway**, no en tu código.
 

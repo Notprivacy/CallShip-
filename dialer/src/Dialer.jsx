@@ -33,6 +33,7 @@ export default function Dialer({ user, token, onLogout }) {
   const [adminPendingDeposits, setAdminPendingDeposits] = useState([]);
   const [showCryptoManual, setShowCryptoManual] = useState(false);
   const [cryptoWallets, setCryptoWallets] = useState([]);
+  const [selectedCryptoWallet, setSelectedCryptoWallet] = useState(null);
   const [manualDepositCurrency, setManualDepositCurrency] = useState('');
   const [manualDepositTxHash, setManualDepositTxHash] = useState('');
   const [manualDepositSending, setManualDepositSending] = useState(false);
@@ -205,7 +206,7 @@ export default function Dialer({ user, token, onLogout }) {
           amount_usd: amt,
           currency: manualDepositCurrency,
           tx_hash: manualDepositTxHash || undefined,
-          network: cryptoWallets.find((w) => w.currency === manualDepositCurrency)?.network,
+          network: selectedCryptoWallet?.network ?? cryptoWallets.find((w) => w.currency === manualDepositCurrency)?.network,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -1093,34 +1094,69 @@ export default function Dialer({ user, token, onLogout }) {
                   </div>
                   {showCryptoManual && (
                     <div style={{ marginTop: 16, padding: 16, background: 'rgba(0,0,0,0.2)', borderRadius: 8 }}>
-                      <h4 style={{ margin: '0 0 12px', fontSize: 15 }}>Enviar a una de estas billeteras</h4>
-                      <p style={{ color: 'rgba(229,231,235,0.7)', fontSize: 12, marginBottom: 12 }}>Indica el monto arriba (USD). Después de enviar, rellena "Ya envié" para que al confirmar la recepción te acreditemos el saldo.</p>
+                      <h4 style={{ margin: '0 0 8px', fontSize: 15 }}>Elige la criptomoneda para recargar</h4>
+                      <p style={{ color: 'rgba(229,231,235,0.7)', fontSize: 12, marginBottom: 14 }}>Indica el monto arriba (USD). Selecciona una opción y envía a la dirección que aparecerá. Después rellena "Ya envié el pago".</p>
                       {cryptoWallets.length === 0 ? (
-                        <p className="cs-muted">No hay direcciones configuradas. El administrador debe añadir CRYPTO_*_ADDRESS o CRYPTO_WALLETS.</p>
+                        <p className="cs-muted">No hay direcciones configuradas. El administrador debe añadir CRYPTO_WALLETS en Railway.</p>
                       ) : (
                         <>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                            {cryptoWallets.map((w) => (
-                              <div key={`${w.currency}-${w.network}`} style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: 10, background: 'rgba(255,255,255,0.05)', borderRadius: 6 }}>
-                                <span style={{ fontSize: 24, minWidth: 32 }}>{w.logo || w.currency.charAt(0)}</span>
-                                <div>
-                                  <strong>{w.currency}</strong>
-                                  <span style={{ color: 'rgba(229,231,235,0.6)', marginLeft: 8 }}>{w.network}</span>
-                                </div>
-                                <code style={{ flex: 1, minWidth: 0, wordBreak: 'break-all', fontSize: 12 }}>{w.address}</code>
-                                <button type="button" className="cs-btn" style={{ padding: '6px 10px' }} onClick={() => copyToClipboard(w.address)}>Copiar</button>
-                              </div>
-                            ))}
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
+                            {cryptoWallets.map((w) => {
+                              const isSelected = selectedCryptoWallet && selectedCryptoWallet.currency === w.currency && selectedCryptoWallet.network === w.network;
+                              return (
+                                <button
+                                  key={`${w.currency}-${w.network}`}
+                                  type="button"
+                                  className="cs-btn"
+                                  onClick={() => { setSelectedCryptoWallet(w); setManualDepositCurrency(w.currency); }}
+                                  style={{
+                                    display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px',
+                                    border: isSelected ? '2px solid rgba(34,197,94,0.8)' : '1px solid rgba(255,255,255,0.2)',
+                                    background: isSelected ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)',
+                                    borderRadius: 10,
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  <span style={{ fontSize: 22 }}>{w.logo || w.currency.charAt(0)}</span>
+                                  <span><strong>{w.currency}</strong></span>
+                                  <span style={{ color: 'rgba(229,231,235,0.65)', fontSize: 12 }}>{w.network}</span>
+                                </button>
+                              );
+                            })}
                           </div>
+                          {selectedCryptoWallet && (
+                            <div style={{ padding: 14, background: 'rgba(255,255,255,0.06)', borderRadius: 8, marginBottom: 16 }}>
+                              <div style={{ fontSize: 12, color: 'rgba(229,231,235,0.7)', marginBottom: 6 }}>
+                                Dirección <strong>{selectedCryptoWallet.currency}</strong> ({selectedCryptoWallet.network})
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                                <code style={{ flex: 1, minWidth: 0, wordBreak: 'break-all', fontSize: 13 }}>{selectedCryptoWallet.address}</code>
+                                <button type="button" className="cs-btn cs-btn-primary" style={{ padding: '8px 14px' }} onClick={() => copyToClipboard(selectedCryptoWallet.address)}>
+                                  Copiar
+                                </button>
+                              </div>
+                            </div>
+                          )}
                           <div style={{ marginTop: 16 }}>
                             <h4 style={{ margin: '0 0 8px', fontSize: 14 }}>Ya envié el pago</h4>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end' }}>
                               <div>
                                 <label style={{ fontSize: 11, color: 'rgba(229,231,235,0.6)' }}>Moneda / Red</label>
-                                <select className="cs-field" value={manualDepositCurrency} onChange={(e) => setManualDepositCurrency(e.target.value)} style={{ marginLeft: 8, minWidth: 120 }}>
+                                <select
+                                  className="cs-field"
+                                  value={selectedCryptoWallet ? `${selectedCryptoWallet.currency}|${selectedCryptoWallet.network}` : ''}
+                                  onChange={(e) => {
+                                    const v = e.target.value;
+                                    if (!v) { setManualDepositCurrency(''); setSelectedCryptoWallet(null); return; }
+                                    const [cur, net] = v.split('|');
+                                    const w = cryptoWallets.find(x => x.currency === cur && x.network === net);
+                                    if (w) { setManualDepositCurrency(w.currency); setSelectedCryptoWallet(w); }
+                                  }}
+                                  style={{ marginLeft: 8, minWidth: 140 }}
+                                >
                                   <option value="">Selecciona</option>
                                   {cryptoWallets.map((w) => (
-                                    <option key={`${w.currency}-${w.network}`} value={w.currency}>{w.currency} ({w.network})</option>
+                                    <option key={`${w.currency}-${w.network}`} value={`${w.currency}|${w.network}`}>{w.currency} ({w.network})</option>
                                   ))}
                                 </select>
                               </div>
