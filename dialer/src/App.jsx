@@ -80,11 +80,11 @@ export default function App() {
             </div>
           </div>
           <p style={{ color: 'rgba(229,231,235,0.75)', marginTop: 0 }}>
-            No se pudo conectar a la API.{' '}
+            No se pudo conectar al servidor.{' '}
             {API.startsWith('http') ? (
-              <>Comprueba que el servidor esté en marcha: <strong>{API}</strong></>
+              <>Comprueba que el backend esté en marcha: <strong>{API}</strong></>
             ) : (
-              <>En producción, configura <strong>VITE_API_URL</strong> con la URL de tu backend (ej. Railway) y vuelve a desplegar el frontend.</>
+              <>Comprueba que el backend esté en marcha (por ejemplo abre <a href="/api/health" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>/api/health</a> en esta pestaña). Si responde, pulsa Reintentar.</>
             )}
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
