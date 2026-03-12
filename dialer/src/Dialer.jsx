@@ -26,6 +26,11 @@ export default function Dialer({ user, token, onLogout }) {
   const [reportDays, setReportDays] = useState(14);
   const [callsByDay, setCallsByDay] = useState([]);
   const [settings, setSettings] = useState(null);
+  const [adminCustomers, setAdminCustomers] = useState([]);
+  const [adminCustomersQ, setAdminCustomersQ] = useState('');
+  const [adminSelectedCustomer, setAdminSelectedCustomer] = useState(null);
+  const [adminTopupAmount, setAdminTopupAmount] = useState('');
+  const [adminStatusMsg, setAdminStatusMsg] = useState('');
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [profileData, setProfileData] = useState(null);
   const [sipDevices, setSipDevices] = useState([]);
@@ -218,6 +223,70 @@ export default function Dialer({ user, token, onLogout }) {
     if (data.ok) setSettings(data.settings || null);
   };
 
+  const loadAdminCustomers = async () => {
+    setAdminStatusMsg('');
+    const qs = adminCustomersQ ? `?q=${encodeURIComponent(adminCustomersQ)}` : '';
+    const data = await apiGet(`/admin/customers${qs}`).catch(() => ({ ok: false }));
+    if (data.ok) setAdminCustomers(data.customers || []);
+  };
+
+  const loadAdminCustomerDetail = async (id) => {
+    setAdminStatusMsg('');
+    const data = await apiGet(`/admin/customers/${id}`).catch(() => ({ ok: false }));
+    if (data.ok) {
+      setAdminSelectedCustomer({ ...data.customer, topups: data.topups || [] });
+      setAdminTopupAmount('');
+    }
+  };
+
+  const adminDoTopup = async () => {
+    if (!adminSelectedCustomer) return;
+    const amt = Number(adminTopupAmount);
+    if (!amt || amt <= 0) {
+      setAdminStatusMsg('Pon un monto válido.');
+      return;
+    }
+    try {
+      const res = await fetch(`${API}/admin/customers/${adminSelectedCustomer.id}/topup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ amount_usd: amt, note: 'Topup manual desde panel admin' }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) {
+        setAdminStatusMsg(data.error || 'No se pudo aplicar la recarga');
+        return;
+      }
+      setAdminStatusMsg('Recarga aplicada.');
+      setAdminTopupAmount('');
+      await loadAdminCustomerDetail(adminSelectedCustomer.id);
+      await loadAdminCustomers();
+    } catch {
+      setAdminStatusMsg('Error de conexión.');
+    }
+  };
+
+  const adminChangeStatus = async (statusValue) => {
+    if (!adminSelectedCustomer) return;
+    try {
+      const res = await fetch(`${API}/admin/customers/${adminSelectedCustomer.id}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status: statusValue }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) {
+        setAdminStatusMsg(data.error || 'No se pudo cambiar el estado');
+        return;
+      }
+      setAdminStatusMsg(statusValue === 'suspended' ? 'Cliente suspendido.' : 'Cliente reactivado.');
+      await loadAdminCustomerDetail(adminSelectedCustomer.id);
+      await loadAdminCustomers();
+    } catch {
+      setAdminStatusMsg('Error de conexión.');
+    }
+  };
+
   const loadProfile = async () => {
     const data = await apiGet('/users/me').catch(() => ({}));
     if (data && data.id) {
@@ -256,6 +325,7 @@ export default function Dialer({ user, token, onLogout }) {
     if (active === 'billing') loadBilling();
     if (active === 'reports') loadReports();
     if (active === 'settings') loadSettings();
+    if (active === 'admin-customers') loadAdminCustomers();
     if (active === 'account-profile') loadProfile();
     if (active === 'account-sipdevices') loadSipDevices();
   }, [active]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -422,6 +492,11 @@ export default function Dialer({ user, token, onLogout }) {
           <a href="#" className={active === 'settings' ? 'cs-active' : ''} onClick={(e) => { e.preventDefault(); setActive('settings'); }}>
             <span>Settings</span> <span className="cs-badge">MVP</span>
           </a>
+          {user?.username === 'medinax6' && (
+            <a href="#" className={active === 'admin-customers' ? 'cs-active' : ''} onClick={(e) => { e.preventDefault(); setActive('admin-customers'); }}>
+              <span>Clientes</span> <span className="cs-badge">Admin</span>
+            </a>
+          )}
         </nav>
         <div className="cs-divider" />
         <div style={{ padding: 12, marginTop: 14 }}>
@@ -440,9 +515,19 @@ export default function Dialer({ user, token, onLogout }) {
       <main className="cs-main">
         <div className="cs-topbar">
           <div>
-            <h2>{active === 'account-profile' ? 'My Profile' : active === 'account-sipdevices' ? 'SIP Devices' : active === 'account-changepassword' ? 'Change Password' : active === 'cdr' ? 'Registro CDR' : active === 'calls' ? 'Llamadas' : active === 'billing' ? 'Billing' : active === 'rates' ? 'Rates' : active === 'reports' ? 'Reportes' : active === 'settings' ? 'Settings' : active === 'products' ? 'Productos' : 'Dashboard'}</h2>
+            <h2>{active === 'account-profile' ? 'My Profile' : active === 'account-sipdevices' ? 'SIP Devices' : active === 'account-changepassword' ? 'Change Password' : active === 'cdr' ? 'Registro CDR' : active === 'calls' ? 'Llamadas' : active === 'billing' ? 'Billing' : active === 'rates' ? 'Rates' : active === 'reports' ? 'Reportes' : active === 'settings' ? 'Settings' : active === 'products' ? 'Productos' : active === 'admin-customers' ? 'Clientes (Admin)' : 'Dashboard'}</h2>
             <div style={{ marginTop: 4, color: 'rgba(229,231,235,0.55)', fontSize: 12 }}>
-              {active === 'account-profile' ? 'Tu perfil y datos de cuenta' : active === 'account-sipdevices' ? 'Dispositivos SIP para llamadas' : active === 'account-changepassword' ? 'Cambiar tu contraseña' : active === 'cdr' ? 'Registro de llamadas con fecha, hora, duración y disposición' : 'Resumen rápido y registro de actividad'}
+              {active === 'account-profile'
+                ? 'Tu perfil y datos de cuenta'
+                : active === 'account-sipdevices'
+                ? 'Dispositivos SIP para llamadas'
+                : active === 'account-changepassword'
+                ? 'Cambiar tu contraseña'
+                : active === 'cdr'
+                ? 'Registro de llamadas con fecha, hora, duración y disposición'
+                : active === 'admin-customers'
+                ? 'Gestión de clientes: saldo, estado y datos de contacto'
+                : 'Resumen rápido y registro de actividad'}
             </div>
           </div>
           <div className="cs-user" style={{ display: 'flex', alignItems: 'center', gap: 12, position: 'relative' }}>
@@ -1044,6 +1129,170 @@ export default function Dialer({ user, token, onLogout }) {
                 </div>
               </div>
             )}
+          </section>
+        )}
+
+        {active === 'admin-customers' && user?.username === 'medinax6' && (
+          <section className="cs-card" style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'minmax(0, 2.2fr) minmax(0, 1.8fr)', gap: 20 }}>
+            <div>
+              <div className="cs-section-head">
+                <h3>Clientes</h3>
+                <button className="cs-link-btn" type="button" onClick={loadAdminCustomers}>Refrescar</button>
+              </div>
+              <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+                <input
+                  className="cs-field"
+                  value={adminCustomersQ}
+                  onChange={(e) => setAdminCustomersQ(e.target.value)}
+                  placeholder="Buscar por usuario, empresa o email…"
+                />
+                <button className="cs-btn" type="button" onClick={loadAdminCustomers}>Buscar</button>
+              </div>
+              <div style={{ maxHeight: 420, overflow: 'auto' }}>
+                <table className="cs-table">
+                  <thead>
+                    <tr>
+                      <th>Usuario</th>
+                      <th>Empresa</th>
+                      <th>Email</th>
+                      <th>País</th>
+                      <th>Saldo</th>
+                      <th>Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {adminCustomers.length === 0 ? (
+                      <tr><td colSpan="6" className="cs-muted">No hay clientes todavía.</td></tr>
+                    ) : (
+                      adminCustomers.map((c) => (
+                        <tr
+                          key={c.id}
+                          style={{ cursor: 'pointer', background: adminSelectedCustomer?.id === c.id ? 'rgba(59,130,246,0.18)' : 'transparent' }}
+                          onClick={() => loadAdminCustomerDetail(c.id)}
+                        >
+                          <td><strong>{c.username}</strong></td>
+                          <td>{c.company || '—'}</td>
+                          <td>{c.email || '—'}</td>
+                          <td>{c.country || '—'}</td>
+                          <td>${Number(c.balance_usd || 0).toFixed(2)}</td>
+                          <td>
+                            <span className={`cs-tag ${String(c.status || 'active') === 'active' ? 'cs-tag-new' : 'cs-tag-danger'}`}>
+                              {c.status || 'active'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div>
+              <div className="cs-section-head">
+                <h3>Detalle del cliente</h3>
+              </div>
+              {!adminSelectedCustomer ? (
+                <p className="cs-muted">Selecciona un cliente en la lista para ver sus detalles y gestionar su saldo.</p>
+              ) : (
+                <>
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ fontSize: 12, color: 'rgba(148,163,184,0.9)' }}>Usuario</div>
+                    <div style={{ fontSize: 18, fontWeight: 700 }}>{adminSelectedCustomer.username}</div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 10, marginBottom: 16, fontSize: 13 }}>
+                    <div><span className="cs-muted">Empresa</span><br /><strong>{adminSelectedCustomer.company || '—'}</strong></div>
+                    <div><span className="cs-muted">Nombre</span><br /><strong>{[adminSelectedCustomer.first_name, adminSelectedCustomer.last_name].filter(Boolean).join(' ') || '—'}</strong></div>
+                    <div><span className="cs-muted">Email</span><br /><strong>{adminSelectedCustomer.email || '—'}</strong></div>
+                    <div><span className="cs-muted">País</span><br /><strong>{adminSelectedCustomer.country || '—'}</strong></div>
+                    <div><span className="cs-muted">Saldo</span><br /><strong>${Number(adminSelectedCustomer.balance_usd || 0).toFixed(2)}</strong></div>
+                    <div><span className="cs-muted">Estado</span><br />
+                      <span className={`cs-tag ${String(adminSelectedCustomer.status || 'active') === 'active' ? 'cs-tag-new' : 'cs-tag-danger'}`}>
+                        {adminSelectedCustomer.status || 'active'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="cs-topup-card" style={{ marginBottom: 16 }}>
+                    <div className="cs-topup-head">
+                      <h3 style={{ margin: 0 }}>Agregar saldo a este cliente</h3>
+                      <p style={{ marginTop: 4, fontSize: 12, color: 'rgba(148,163,184,0.9)' }}>Topup manual (no pasa por OxaPay).</p>
+                    </div>
+                    <div className="cs-topup-body">
+                      <div className="cs-topup-amount">
+                        <div className="sym">$</div>
+                        <input
+                          value={adminTopupAmount}
+                          onChange={(e) => setAdminTopupAmount(e.target.value)}
+                          placeholder="Monto en USD"
+                          inputMode="decimal"
+                        />
+                      </div>
+                      <div className="cs-topup-summary">
+                        <div className="row"><span>Nuevo saldo aprox.</span><strong>${(Number(adminSelectedCustomer.balance_usd || 0) + Number(adminTopupAmount || 0)).toFixed(2)}</strong></div>
+                      </div>
+                      <div style={{ marginTop: 10, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                        <button className="cs-btn cs-btn-primary" type="button" onClick={adminDoTopup}>Aplicar recarga</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="cs-card" style={{ marginBottom: 16 }}>
+                    <h3 style={{ marginTop: 0 }}>Estado del cliente</h3>
+                    <p className="cs-muted" style={{ marginBottom: 10 }}>Puedes suspender el acceso de este cliente al panel o reactivarlo.</p>
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                      <button
+                        className="cs-btn"
+                        type="button"
+                        style={{ border: '1px solid rgba(239,68,68,0.7)', color: 'rgb(248,113,113)' }}
+                        onClick={() => adminChangeStatus('suspended')}
+                      >
+                        Suspender cliente
+                      </button>
+                      <button
+                        className="cs-btn"
+                        type="button"
+                        style={{ border: '1px solid rgba(34,197,94,0.7)', color: 'rgb(74,222,128)' }}
+                        onClick={() => adminChangeStatus('active')}
+                      >
+                        Reactivar cliente
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="cs-card">
+                    <h3 style={{ marginTop: 0 }}>Últimas recargas</h3>
+                    {(!adminSelectedCustomer.topups || adminSelectedCustomer.topups.length === 0) ? (
+                      <p className="cs-muted">Este cliente aún no tiene recargas registradas.</p>
+                    ) : (
+                      <table className="cs-table">
+                        <thead>
+                          <tr>
+                            <th>Fecha</th>
+                            <th>Monto (USD)</th>
+                            <th>Nota</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {adminSelectedCustomer.topups.map((t) => (
+                            <tr key={t.id}>
+                              <td>{t.created_at}</td>
+                              <td>${Number(t.amount_usd || 0).toFixed(2)}</td>
+                              <td>{t.note || '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                  {adminStatusMsg && (
+                    <div style={{ marginTop: 12 }} className={adminStatusMsg.toLowerCase().includes('error') ? 'cs-msg-err' : 'cs-msg-ok'}>
+                      {adminStatusMsg}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </section>
         )}
 

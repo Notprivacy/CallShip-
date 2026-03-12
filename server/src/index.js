@@ -67,6 +67,7 @@ app.get('/api/health', (req, res) => {
     app.use('/api/settings', require('./routes/settings'));
     app.use('/api/sip-devices', require('./routes/sipdevices'));
     app.use('/api/oxapay', require('./routes/oxapay'));
+    app.use('/api/admin', require('./routes/admin'));
 
     app.listen(PORT, () => {
       console.log('API CallShip escuchando en http://localhost:' + PORT);

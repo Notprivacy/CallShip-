@@ -42,7 +42,9 @@ async function initSqlite() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
-      created_at TEXT DEFAULT (datetime('now'))
+      created_at TEXT DEFAULT (datetime('now')),
+      balance_usd REAL DEFAULT 0,
+      status TEXT DEFAULT 'active'
     );
     CREATE TABLE IF NOT EXISTS calls (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -138,6 +140,14 @@ async function initSqlite() {
       fax_number TEXT,
       updated_at TEXT DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS user_topups (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      amount_usd REAL NOT NULL,
+      note TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
   `);
 
   sqliteDb = sqlDb;
@@ -145,6 +155,8 @@ async function initSqlite() {
   console.log('Tablas base listas (SQLite sql.js: ' + dbPath + ')');
 
   // Migraciones suaves (SQLite): si la tabla ya existía, añadimos columnas nuevas si faltan.
+  try { sqliteDb.exec(`ALTER TABLE users ADD COLUMN balance_usd REAL DEFAULT 0`); } catch {}
+  try { sqliteDb.exec(`ALTER TABLE users ADD COLUMN status TEXT DEFAULT 'active'`); } catch {}
   // (SQLite no soporta ADD COLUMN IF NOT EXISTS)
   try { sqliteDb.exec(`ALTER TABLE sip_devices ADD COLUMN caller_name TEXT`); } catch {}
   try { sqliteDb.exec(`ALTER TABLE sip_devices ADD COLUMN caller_number TEXT`); } catch {}
@@ -232,7 +244,9 @@ async function initPg() {
       id SERIAL PRIMARY KEY,
       username VARCHAR(50) UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
-      created_at TIMESTAMP DEFAULT NOW()
+      created_at TIMESTAMP DEFAULT NOW(),
+      balance_usd NUMERIC(12,4) DEFAULT 0,
+      status VARCHAR(30) DEFAULT 'active'
     );
   `);
   await p.query(`
@@ -325,6 +339,8 @@ async function initPg() {
   `);
 
   // Migraciones suaves (PostgreSQL) si la tabla ya existía
+  await p.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS balance_usd NUMERIC(12,4) DEFAULT 0;`);
+  await p.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS status VARCHAR(30) DEFAULT 'active';`);
   await p.query(`ALTER TABLE sip_devices ADD COLUMN IF NOT EXISTS caller_name VARCHAR(120);`);
   await p.query(`ALTER TABLE sip_devices ADD COLUMN IF NOT EXISTS caller_number VARCHAR(60);`);
   await p.query(`ALTER TABLE sip_devices ADD COLUMN IF NOT EXISTS voicemail SMALLINT DEFAULT 1;`);
@@ -350,6 +366,16 @@ async function initPg() {
       timezone VARCHAR(80),
       fax_number VARCHAR(40),
       updated_at TIMESTAMP DEFAULT NOW()
+    );
+  `);
+
+  await p.query(`
+    CREATE TABLE IF NOT EXISTS user_topups (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      amount_usd NUMERIC(12,4) NOT NULL,
+      note TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
     );
   `);
 
