@@ -1,6 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
-
-const API = '/api';
+import { API } from './api';
 const YOUTUBE_BG_VIDEO_ID = 'O5Vd-I1gd7Y';
 const YOUTUBE_BG_LOOP_END_SEC = 4;
 
@@ -227,7 +226,12 @@ export default function Dialer({ user, token, onLogout }) {
     setAdminStatusMsg('');
     const qs = adminCustomersQ ? `?q=${encodeURIComponent(adminCustomersQ)}` : '';
     const data = await apiGet(`/admin/customers${qs}`).catch(() => ({ ok: false }));
-    if (data.ok) setAdminCustomers(data.customers || []);
+    if (data.ok) {
+      setAdminCustomers(data.customers || []);
+    } else {
+      setAdminCustomers([]);
+      if (data.error) setAdminStatusMsg(data.error);
+    }
   };
 
   const loadAdminCustomerDetail = async (id) => {
@@ -254,13 +258,16 @@ export default function Dialer({ user, token, onLogout }) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) {
-        setAdminStatusMsg(data.error || 'No se pudo aplicar la recarga');
+        const msg = data.error || 'No se pudo aplicar la recarga';
+        setAdminStatusMsg(res.status === 403 ? `${msg}. En producción configura ADMIN_USERS con tu usuario (ej. medinax6) en Railway.` : msg);
         return;
       }
       setAdminStatusMsg('Recarga aplicada.');
       setAdminTopupAmount('');
       await loadAdminCustomerDetail(adminSelectedCustomer.id);
       await loadAdminCustomers();
+      // Actualizar el Balance del dashboard por si recargaste tu propia cuenta
+      loadBilling();
     } catch {
       setAdminStatusMsg('Error de conexión.');
     }

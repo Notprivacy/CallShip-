@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import CanvasBillsBackground from './CanvasBillsBackground';
-
-const API = '/api';
+import { API } from './api';
 
 export default function Login({ onLogin }) {
   const [username, setUsername] = useState('');
@@ -14,8 +13,10 @@ export default function Login({ onLogin }) {
     e.preventDefault();
     setError('');
     setSuccess('');
+    const userTrim = String(username).trim();
+    const passTrim = String(password).trim();
     const url = isRegister ? `${API}/auth/register` : `${API}/auth/login`;
-    const body = { username, password };
+    const body = { username: userTrim, password: passTrim };
     try {
       const res = await fetch(url, {
         method: 'POST',
@@ -28,7 +29,7 @@ export default function Login({ onLogin }) {
         const connectionFailed = res.status === 0 || res.status === 502 || res.status === 503 || res.status === 504;
         const apiMessage = data.error || data.message;
         if (connectionFailed || (res.status >= 500 && !apiMessage)) {
-          setError('No se pudo conectar a la API. Arranca el servidor: en la carpeta "server" ejecuta "npm run dev" y espera a ver "escuchando en http://localhost:4000".');
+          setError('No se pudo conectar a la API. Comprueba que el servidor esté en marcha o que VITE_API_URL apunte a tu backend en producción.');
           return;
         }
         setError(apiMessage || 'Error');
@@ -45,7 +46,7 @@ export default function Login({ onLogin }) {
       }
       onLogin(data.token, data.user);
     } catch {
-      setError('No se pudo conectar al servidor. ¿Está la API en marcha? (puerto 4000)');
+      setError('No se pudo conectar al servidor. ¿Está la API en marcha?');
     }
   };
 

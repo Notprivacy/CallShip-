@@ -107,12 +107,13 @@ router.post('/oxapay/invoice', async (req, res) => {
   }
 });
 
-// Balance simple = sum(payments) - 0 (sin cargos todavía)
+// Balance del usuario: usamos users.balance_usd (que se actualiza con recargas admin y topups)
 router.get('/balance', async (req, res) => {
   try {
     const r = await db.pool.query(
-      `SELECT COALESCE(SUM(amount_usd), 0) AS balance_usd
-       FROM payments WHERE user_id = $1`,
+      `SELECT COALESCE(balance_usd, 0) AS balance_usd
+       FROM users
+       WHERE id = $1`,
       [req.user.userId]
     );
     const balance = Number(r.rows[0]?.balance_usd || 0);

@@ -37,11 +37,12 @@ router.get('/customers', async (req, res) => {
     const params = [];
     let where = '1=1';
     if (q) {
-      params.push(`%${q}%`);
-      params.push(`%${q}%`);
-      params.push(`%${q}%`);
+      params.push(`%${q}%`, `%${q}%`, `%${q}%`);
       where = `(LOWER(u.username) LIKE $1 OR LOWER(COALESCE(p.company, '')) LIKE $2 OR LOWER(COALESCE(p.email, '')) LIKE $3)`;
     }
+    params.push(pageSize, offset);
+    const limitIdx = params.length - 1;
+    const offsetIdx = params.length;
 
     const sql = `
       SELECT
@@ -59,9 +60,8 @@ router.get('/customers', async (req, res) => {
       LEFT JOIN user_profiles p ON p.user_id = u.id
       WHERE ${where}
       ORDER BY u.created_at DESC
-      LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+      LIMIT $${limitIdx} OFFSET $${offsetIdx}
     `;
-    params.push(pageSize, offset);
 
     const r = await db.pool.query(sql, params);
     res.json({ ok: true, customers: r.rows, page, pageSize });
@@ -121,7 +121,7 @@ router.get('/customers/:id', async (req, res) => {
   }
 });
 
-// Agregar saldo a un cliente
+// Agregar saldo a un cliente (user_topups + users.balance_usd + payments para que el dashboard lo muestre)
 router.post('/customers/:id/topup', async (req, res) => {
   const id = parseInt(req.params.id, 10);
   const amount = Number(req.body?.amount_usd || 0);
@@ -136,12 +136,21 @@ router.post('/customers/:id/topup', async (req, res) => {
        VALUES ($1, $2, $3)`,
       [id, amount, note || null]
     );
-    const r = await db.pool.query(
+    await db.pool.query(
       `UPDATE users
        SET balance_usd = COALESCE(balance_usd, 0) + $1
-       WHERE id = $2
-       RETURNING id, username, balance_usd, status`,
+       WHERE id = $2`,
       [amount, id]
+    );
+    // Registrar en payments para que /billing/balance y el dashboard muestren el saldo
+    await db.pool.query(
+      `INSERT INTO payments (user_id, amount_usd, method, reference)
+       VALUES ($1, $2, $3, $4)`,
+      [id, amount, 'admin_topup', note || null]
+    );
+    const r = await db.pool.query(
+      `SELECT id, username, balance_usd, status FROM users WHERE id = $1`,
+      [id]
     );
     if (!r.rows.length) return res.status(404).json({ ok: false, error: 'Cliente no encontrado' });
     res.status(201).json({ ok: true, customer: r.rows[0] });
