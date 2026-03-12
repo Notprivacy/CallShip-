@@ -1,57 +1,59 @@
-# Configurar Railway para que los cambios SÍ se apliquen
+# Cómo aplicar los cambios en www.callship.us
 
-Si **www.callship.us** sigue mostrando lo mismo (Clientes visible para clientes, "Recarga aplicada correctamente" sin pagar), es porque Railway está desplegando **solo la carpeta server** con un frontend viejo.
-
----
-
-## Qué hacer UNA vez en Railway
-
-### 1. Entra a tu proyecto en Railway
-
-**CallShip** → servicio que tiene **www.callship.us** (el de la API).
-
-### 2. Abre **Settings** (Configuración)
-
-### 3. Busca **"Root Directory"** (o "Source Root")
-
-- Si pone **`server`** o **`./server`**, **bórralo** y déjalo **vacío**.
-- Así Railway usará la **raíz del repo** (donde están `dialer/`, `server/`, `package.json`, `railway.toml`).
-
-### 4. Comprueba **Build** y **Start**
-
-Con el archivo **`railway.toml`** en la raíz del repo, Railway usará:
-
-- **Build:** `npm install && npm run build`  
-  (instala dependencias, construye el dialer y lo copia a `server/public`)
-- **Start:** `npm start`  
-  (arranca el servidor desde `server/`)
-
-No hace falta que los escribas a mano si ya está el `railway.toml`; solo asegúrate de que **Root Directory** esté vacío.
-
-### 5. Guarda y redeploy
-
-Guarda los cambios en Settings y haz **Redeploy** del último deployment (o espera al siguiente push).
+Si pusiste **Root Directory vacío** en Railway, el build falla ("Failed to build an image").  
+Usa **Root Directory = server** y sube el frontend nuevo dentro de `server/public`.
 
 ---
 
-## Después de esto
+## Paso 1: En Railway (para que el deploy vuelva a funcionar)
 
-En cada **push** a la rama que conectaste (por ejemplo `main`):
+1. Entra a **Railway** → proyecto **CallShip** → servicio de **www.callship.us**.
+2. Ve a **Settings**.
+3. En **Root Directory** pon: **`server`** (y guarda).
 
-1. Railway usa la **raíz** del repo.
-2. Ejecuta **Build** → se genera el frontend nuevo y se copia a `server/public`.
-3. Ejecuta **Start** → se inicia el servidor con ese frontend.
+Así Railway vuelve a desplegar solo la carpeta `server` y el deploy debería pasar a verde.
 
-Así **no dependes de subir `server/public` a mano** y los cambios del dialer (ocultar Clientes, recarga manual con cripto, etc.) se aplican en **www.callship.us** en cada deploy.
+---
+
+## Paso 2: En tu PC (generar el frontend nuevo y subirlo)
+
+Abre **Git Bash** o la terminal en la **raíz del proyecto** (carpeta CallShip):
+
+```bash
+cd /c/Users/Shipe/OneDrive/Escritorio/CallShip
+npm run build
+```
+
+Eso genera el dialer y lo copia a **server/public**. Luego:
+
+```bash
+git add server/public
+git status
+```
+
+Tienes que ver cambios en **server/public** (p. ej. `index.html`, `assets/index-XXXXX.js`). Si no ves nada, el build no se copió; dime y lo revisamos.
+
+```bash
+git add .
+git commit -m "Frontend: ocultar Clientes a no-admin, recarga manual sin abonar"
+git push
+```
+
+---
+
+## Paso 3: Deploy en Railway
+
+Cuando termine el push, Railway hará un **nuevo deploy** (con Root = server). Ese deploy **sí** debe salir en verde porque solo construye el servidor.
+
+Cuando esté **Success**, abre **www.callship.us**, recarga con **Ctrl+F5** y prueba con **nicol2** y **medinax6**.
 
 ---
 
 ## Resumen
 
-| Antes (mal)              | Después (bien)                    |
-|--------------------------|------------------------------------|
-| Root Directory = `server`| Root Directory = **vacío**        |
-| Solo se desplegaba server | Se despliega raíz → build → server |
-| Frontend viejo en public  | Frontend nuevo en cada deploy     |
-
-Cuando lo cambies, haz un **push** (aunque sea un cambio pequeño) o **Redeploy** y espera a que termine. Luego abre **www.callship.us** con **Ctrl+F5** y prueba con **nicol2** y con **medinax6**.
+| Qué hacer | Dónde |
+|-----------|--------|
+| Root Directory = **server** | Railway → Settings |
+| `npm run build` | Tu PC (raíz CallShip) |
+| `git add server/public` y push | Tu PC |
+| Probar con Ctrl+F5 | www.callship.us |
