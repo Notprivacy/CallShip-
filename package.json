@@ -1,0 +1,15 @@
+{
+  "name": "callship",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n server,dialer -c blue,green \"npm run dev:server\" \"npm run dev:dialer\"",
+    "dev:server": "cd server && npm run dev",
+    "dev:dialer": "cd dialer && npm run dev",
+    "build": "cd dialer && npm run build && node ../scripts/copy-dialer-build.js",
+    "start": "npm run dev"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

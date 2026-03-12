@@ -1,0 +1,813 @@
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  background: radial-gradient(1100px 680px at 12% 18%, rgba(239,68,68,0.22), transparent 58%),
+              radial-gradient(900px 520px at 82% 26%, rgba(248,113,113,0.14), transparent 52%),
+              radial-gradient(900px 520px at 45% 92%, rgba(185,28,28,0.14), transparent 56%),
+              #07070c;
+  color: #e5e7eb;
+  min-height: 100vh;
+}
+
+:root{
+  --bg: #07070c;
+  --panel: rgba(255,255,255,0.06);
+  --panel-2: rgba(255,255,255,0.09);
+  --stroke: rgba(255,255,255,0.10);
+  --text: #e5e7eb;
+  --muted: rgba(229,231,235,0.72);
+  --muted-2: rgba(229,231,235,0.55);
+  --brand: #ef4444;      /* rojo */
+  --brand-2: #991b1b;    /* rojo oscuro */
+  --brand-3: #111827;    /* negro azulado */
+  --danger: #ef4444;
+  --shadow: 0 18px 45px rgba(0,0,0,0.45);
+  --shadow-soft: 0 12px 28px rgba(0,0,0,0.35);
+  --radius: 14px;
+}
+
+/* Fondo animado (movimiento sutil) */
+body::before{
+  content: "";
+  position: fixed;
+  inset: -40%;
+  pointer-events: none;
+  background:
+    radial-gradient(closest-side at 30% 30%, rgba(239,68,68,0.24), transparent 60%),
+    radial-gradient(closest-side at 70% 40%, rgba(185,28,28,0.18), transparent 62%),
+    radial-gradient(closest-side at 45% 75%, rgba(248,113,113,0.14), transparent 66%);
+  filter: blur(28px);
+  opacity: 0.85;
+  transform: translate3d(0,0,0);
+  animation: csFloat 14s ease-in-out infinite;
+  z-index: -1;
+}
+
+/* Lluvia de “billetes 100” (estilizados) */
+.cs-bills-canvas{
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: -2;
+}
+
+@keyframes csFloat{
+  0%   { transform: translate(-2%, -1%) scale(1.02); }
+  50%  { transform: translate(2%, 1%) scale(1.06); }
+  100% { transform: translate(-2%, -1%) scale(1.02); }
+}
+
+a { color: inherit; }
+button, input { font: inherit; }
+
+/* Contenedor del panel con vídeo de fondo (YouTube) */
+.cs-panel-with-bg{ position: relative; min-height: 100vh; }
+.cs-bg-video-wrap{
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: -2;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* Contenedor del reproductor YouTube (API inyecta iframe dentro) */
+.cs-bg-video-wrap > div{
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100vw;
+  height: 56.25vw;
+  min-width: 177.78vh;
+  min-height: 100vh;
+  transform: translate(-50%, -50%);
+}
+/* Ocultar barra de progreso y controles de YouTube: iframe más alto y recortado por abajo */
+.cs-bg-video-wrap iframe{
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: calc(100% + 80px);
+  min-height: calc(100% + 80px);
+  border: none;
+  pointer-events: none;
+  transform: translateY(-40px);
+}
+.cs-bg-overlay{
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.cs-shell{
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 260px 1fr;
+}
+
+.cs-sidebar{
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  padding: 18px 14px;
+  border-right: 1px solid rgba(255,255,255,0.10);
+  background: linear-gradient(180deg, rgba(8,8,12,0.96), rgba(8,8,12,0.88));
+  backdrop-filter: blur(12px);
+}
+
+.cs-brand{
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 10px 14px;
+  margin-bottom: 10px;
+}
+.cs-logo{
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255,255,255,0.22), transparent 45%),
+    linear-gradient(135deg, var(--brand), var(--brand-2));
+  box-shadow: 0 10px 24px rgba(239,68,68,0.22);
+  overflow: hidden;
+  position: relative;
+}
+.cs-logo::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background-image: url("/logo.png");
+  background-size: cover;
+  background-position: center;
+  opacity: 0.92;
+  transform: scale(1.02);
+}
+.cs-brand h1{
+  font-size: 16px;
+  margin: 0;
+  letter-spacing: 0.3px;
+}
+.cs-brand p{
+  margin: 1px 0 0 0;
+  font-size: 12px;
+  color: var(--muted-2);
+}
+
+.cs-nav{
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+}
+.cs-nav a{
+  text-decoration: none;
+  padding: 11px 12px;
+  border-radius: 14px;
+  color: rgba(255,255,255,0.78);
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.06);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.cs-nav a:hover{
+  background: rgba(255,255,255,0.10);
+  border-color: rgba(255,255,255,0.14);
+  color: rgba(255,255,255,0.92);
+}
+.cs-nav a.cs-active{
+  background: linear-gradient(135deg, rgba(239,68,68,0.55), rgba(0,0,0,0.30));
+  border-color: rgba(239,68,68,0.35);
+  color: rgba(255,255,255,0.96);
+  box-shadow: 0 16px 36px rgba(0,0,0,0.35);
+}
+.cs-nav a.cs-active .cs-badge{
+  background: rgba(0,0,0,0.22);
+  border-color: rgba(255,255,255,0.16);
+}
+.cs-badge{
+  font-size: 12px;
+  color: rgba(255,255,255,0.82);
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.22);
+  border: 1px solid rgba(255,255,255,0.14);
+}
+
+.cs-divider{
+  height: 1px;
+  background: rgba(255,255,255,0.08);
+  margin: 10px 10px;
+}
+
+.cs-main{
+  padding: 20px 22px 28px;
+}
+.cs-topbar{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--stroke);
+  background: var(--panel);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(12px);
+}
+.cs-topbar h2{
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.cs-topbar .cs-user{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.cs-pill{
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--stroke);
+  background: rgba(255,255,255,0.04);
+}
+.cs-btn{
+  border: 1px solid var(--stroke);
+  background: rgba(255,255,255,0.06);
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+.cs-btn:hover{ background: rgba(255,255,255,0.09); }
+.cs-btn-primary{
+  border-color: rgba(124,58,237,0.35);
+  background: linear-gradient(135deg, rgba(124,58,237,0.65), rgba(14,165,233,0.45));
+}
+.cs-btn-primary:hover{
+  background: linear-gradient(135deg, rgba(124,58,237,0.75), rgba(14,165,233,0.55));
+}
+
+.cs-grid{
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 16px;
+}
+
+.cs-card{
+  border: 1px solid var(--stroke);
+  background: var(--panel);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(12px);
+}
+.cs-center{
+  display: grid;
+  place-items: center;
+}
+.cs-topup-wrap{
+  width: 100%;
+  max-width: 620px;
+}
+.cs-topup-card{
+  border-radius: 22px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: linear-gradient(180deg, rgba(17,24,39,0.92), rgba(17,24,39,0.80));
+  box-shadow: 0 30px 80px rgba(0,0,0,0.55);
+  overflow: hidden;
+}
+.cs-topup-head{
+  padding: 22px 22px 10px;
+  text-align: center;
+}
+.cs-topup-head .coin{
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 10px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.10);
+}
+.cs-topup-head h3{
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: 0.4px;
+}
+.cs-topup-head p{
+  margin: 8px 0 0 0;
+  color: rgba(229,231,235,0.65);
+  font-size: 13px;
+}
+.cs-topup-body{
+  padding: 16px 22px 22px;
+}
+.cs-topup-amount{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  padding: 12px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.22);
+}
+.cs-topup-amount .sym{
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  display:grid;
+  place-items:center;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.10);
+  color: rgba(255,255,255,0.85);
+  font-weight: 900;
+}
+.cs-topup-amount input{
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: rgba(255,255,255,0.92);
+  font-size: 16px;
+}
+.cs-topup-summary{
+  margin-top: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.05);
+  overflow: hidden;
+}
+.cs-topup-summary .row{
+  display:flex;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  color: rgba(229,231,235,0.78);
+  font-size: 13px;
+}
+.cs-topup-summary .row:last-child{ border-bottom: none; }
+.cs-topup-summary .row strong{ color: rgba(255,255,255,0.95); }
+.cs-topup-actions{
+  margin-top: 16px;
+  display:flex;
+  justify-content:center;
+}
+.cs-topup-actions .cs-btn{
+  min-width: 200px;
+  border-radius: 14px;
+  padding: 12px 16px;
+  font-weight: 900;
+  letter-spacing: 0.6px;
+}
+.cs-card h3{
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: rgba(255,255,255,0.9);
+  font-weight: 650;
+}
+.cs-kpis{
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 16px;
+}
+.cs-kpi{
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  border-radius: 14px;
+}
+.cs-kpi:disabled{ opacity: 0.7; cursor: not-allowed; }
+.cs-kpi.cs-kpi-color{
+  border: none;
+}
+.cs-kpi.cs-kpi-color:focus{
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(239,68,68,0.16);
+}
+.cs-kpi .label{ color: var(--muted-2); font-size: 12px; }
+.cs-kpi .value{ margin-top: 8px; font-size: 18px; font-weight: 750; letter-spacing: 0.3px; }
+.cs-kpi .hint{ margin-top: 6px; font-size: 12px; color: var(--muted-2); }
+
+/* Dashboard style cards (inspirado, no copia) */
+.cs-kpis.cs-kpis-5{
+  grid-template-columns: repeat(5, 1fr);
+}
+.cs-kpi.cs-kpi-color{
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.05);
+}
+.cs-kpi.cs-kpi-color::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background: var(--cs-kpi-bg, linear-gradient(135deg, rgba(239,68,68,0.40), rgba(0,0,0,0.35)));
+  opacity: 0.9;
+}
+/* Fondo con imagen de bandera USA */
+.cs-kpi.cs-kpi-color.cs-kpi-usa-flag::before{
+  background: linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.45)), url(/media/usa-flag.png) center/cover no-repeat;
+  opacity: 0.95;
+}
+/* Texto blanco puro, más grande y grueso en las tarjetas con bandera */
+.cs-kpi.cs-kpi-usa-flag .label{
+  font-size: 16px;
+  font-weight: 800;
+  color: #ffffff;
+  text-shadow: 0 0 2px rgba(0,0,0,0.9), 0 1px 3px rgba(0,0,0,0.8);
+}
+.cs-kpi.cs-kpi-usa-flag .value{
+  font-size: 26px;
+  font-weight: 900;
+  color: #ffffff;
+  text-shadow: 0 0 2px rgba(0,0,0,0.9), 0 1px 4px rgba(0,0,0,0.8);
+  margin-top: 10px;
+}
+.cs-kpi.cs-kpi-usa-flag .hint{
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 0 2px rgba(0,0,0,0.9), 0 1px 3px rgba(0,0,0,0.8);
+  margin-top: 8px;
+}
+.cs-kpi.cs-kpi-usa-flag .cs-kpi-icon{
+  width: 42px;
+  height: 42px;
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.7);
+  color: #ffffff;
+}
+.cs-kpi.cs-kpi-usa-flag .cs-kpi-icon svg{
+  width: 24px;
+  height: 24px;
+}
+.cs-kpi.cs-kpi-color::after{
+  content:"";
+  position:absolute;
+  inset:-40%;
+  background: radial-gradient(closest-side at 30% 30%, rgba(255,255,255,0.20), transparent 55%);
+  filter: blur(22px);
+  opacity: 0.55;
+}
+.cs-kpi.cs-kpi-color > *{
+  position: relative;
+  z-index: 1;
+}
+.cs-kpi-top{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.cs-kpi-icon{
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(0,0,0,0.18);
+  display:grid;
+  place-items:center;
+  color: rgba(255,255,255,0.9);
+}
+.cs-kpi-icon svg{ width: 18px; height: 18px; }
+
+.cs-section-head{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.cs-section-head h3{ margin: 0; }
+.cs-link-btn{
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.18);
+  color: rgba(255,255,255,0.85);
+  border-radius: 999px;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+.cs-link-btn:hover{ background: rgba(255,255,255,0.08); }
+
+.cs-split{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.cs-muted{
+  color: rgba(229,231,235,0.60);
+  font-size: 13px;
+}
+
+@media (max-width: 980px){
+  .cs-kpis.cs-kpis-5{ grid-template-columns: repeat(2, 1fr); }
+  .cs-split{ grid-template-columns: 1fr; }
+}
+
+.cs-field{
+  width: 100%;
+  padding: 12px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(0,0,0,0.18);
+  color: var(--text);
+  outline: none;
+}
+.cs-field:focus{
+  border-color: rgba(124,58,237,0.45);
+  box-shadow: 0 0 0 4px rgba(124,58,237,0.12);
+}
+
+.cs-row{ display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.cs-help{ margin: 8px 0 0 0; font-size: 12px; color: var(--muted-2); }
+.cs-msg-ok{ color: #34d399; font-size: 13px; margin: 10px 0 0 0; }
+.cs-msg-err{ color: #fb7185; font-size: 13px; margin: 10px 0 0 0; }
+
+.cs-profile-form .cs-profile-row{
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.cs-profile-form .cs-profile-row:last-of-type{ border-bottom: none; }
+.cs-profile-form .cs-field{
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: 10px;
+}
+
+.cs-table{
+  width: 100%;
+  border-collapse: collapse;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.cs-table th, .cs-table td{
+  padding: 10px 10px;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  vertical-align: top;
+}
+.cs-table th{
+  text-align: left;
+  color: rgba(255,255,255,0.80);
+  background: rgba(255,255,255,0.04);
+  font-weight: 650;
+}
+.cs-table td{ color: rgba(255,255,255,0.84); }
+.cs-tag{
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.85);
+}
+.cs-tag-new{ border-color: rgba(34,197,94,0.25); background: rgba(34,197,94,0.14); }
+.cs-tag-note{ border-color: rgba(14,165,233,0.25); background: rgba(14,165,233,0.14); }
+
+.cs-login{
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 28px 18px;
+}
+.cs-login-card{
+  width: 100%;
+  max-width: 520px;
+  border: 1px solid var(--stroke);
+  background: linear-gradient(180deg, rgba(8,8,12,0.86), rgba(8,8,12,0.78));
+  border-radius: 22px;
+  box-shadow: var(--shadow);
+  padding: 0;
+  backdrop-filter: none;
+  position: relative;
+  isolation: isolate;
+}
+
+/* “Medallón” de logo arriba (estilo MasterKing) */
+.cs-login-badge{
+  position: absolute;
+  top: -56px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 190px;
+  height: 190px;
+  border-radius: 999px;
+  border: 6px solid rgba(255,255,255,0.30);
+  background: rgba(0,0,0,0.35);
+  box-shadow: 0 28px 70px rgba(0,0,0,0.68), 0 16px 40px rgba(239,68,68,0.18);
+  overflow: hidden;
+  z-index: 3; /* por encima de overlays */
+}
+.cs-login-badge::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background-image: url("/logo.png");
+  background-size: cover;
+  background-position: center;
+  opacity: 1;
+  filter: none;
+}
+
+/* Formato tipo “tarjeta grande” */
+.cs-login-hero{
+  border-radius: 22px;
+  overflow: visible; /* permite que el logo se salga */
+}
+.cs-login-hero::before{
+  content:"";
+  position:absolute;
+  inset:-18px;
+  z-index:-1;
+  background:
+    radial-gradient(420px 260px at 50% 20%, rgba(239,68,68,0.35), transparent 60%),
+    radial-gradient(520px 320px at 50% 100%, rgba(0,0,0,0.75), transparent 65%);
+  filter: blur(18px);
+  opacity: 0.85;
+}
+
+/* Placa oscura detrás para separar del fondo (evita “difuminado” visual) */
+.cs-login-hero::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background: linear-gradient(180deg, rgba(0,0,0,0.48), rgba(0,0,0,0.62));
+  z-index: 0;
+}
+
+/* Contenido con recorte, pero dejando el logo libre */
+.cs-login-clip{
+  border-radius: 22px;
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+}
+.cs-login-hero-top{
+  padding: 112px 26px 18px;
+  background:
+    linear-gradient(180deg, rgba(239,68,68,0.50), rgba(239,68,68,0.18)),
+    radial-gradient(700px 220px at 50% 0%, rgba(255,255,255,0.18), transparent 55%);
+  border-bottom: 1px solid rgba(255,255,255,0.10);
+  text-align: center;
+}
+.cs-login-hero-top .kicker{
+  font-size: 12px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.86);
+  font-weight: 700;
+}
+.cs-login-hero-top .title{
+  margin: 10px 0 0 0;
+  font-size: 44px;
+  font-weight: 900;
+  letter-spacing: 0.6px;
+  color: rgba(255,255,255,0.96);
+  text-shadow: 0 18px 40px rgba(0,0,0,0.35);
+}
+.cs-login-hero-top .subtitle{
+  margin: 8px 0 0 0;
+  font-size: 13px;
+  color: rgba(255,255,255,0.80);
+}
+
+.cs-login-hero-inner{
+  padding: 18px 22px 22px;
+  background: transparent;
+}
+.cs-login-panel{
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(0,0,0,0.72);
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 18px 45px rgba(0,0,0,0.35);
+}
+.cs-login-field{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+}
+.cs-login-field svg{
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  color: rgba(255,255,255,0.70);
+}
+.cs-login-field input{
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  width: 100%;
+}
+.cs-login-field:focus-within{
+  border-color: rgba(239,68,68,0.45);
+  box-shadow: 0 0 0 4px rgba(239,68,68,0.14);
+}
+.cs-login-cta{
+  margin-top: 14px;
+}
+.cs-login-cta .cs-btn{
+  width: 100%;
+  padding: 14px 14px;
+  border-radius: 14px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+.cs-login-footer{
+  margin-top: 16px;
+  text-align: center;
+  padding: 14px 14px 4px;
+  color: rgba(255,255,255,0.75);
+  font-size: 13px;
+}
+
+/* Modo registro: más llamativo */
+.cs-is-register .cs-login-hero-top{
+  background:
+    linear-gradient(180deg, rgba(239,68,68,0.62), rgba(239,68,68,0.20)),
+    radial-gradient(700px 220px at 50% 0%, rgba(255,255,255,0.22), transparent 55%);
+}
+.cs-is-register .cs-login-hero-top .title{
+  text-shadow: 0 20px 46px rgba(0,0,0,0.45);
+}
+.cs-login-footer .line{
+  margin-top: 10px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  align-items: center;
+  color: rgba(255,255,255,0.65);
+  font-size: 12px;
+}
+.cs-login-footer .dot{
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(239,68,68,0.75);
+  box-shadow: 0 0 0 4px rgba(239,68,68,0.12);
+}
+.cs-login-head{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.cs-login-head h1{ margin: 0; font-size: 18px; letter-spacing: 0.4px; }
+.cs-login-sub{ margin: 0; color: var(--muted-2); font-size: 13px; }
+.cs-login-actions{
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+  align-items: center;
+}
+.cs-link{
+  background: none;
+  border: none;
+  color: rgba(229,231,235,0.85);
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 8px 0;
+}
+
+@media (max-width: 980px){
+  .cs-shell{ grid-template-columns: 1fr; }
+  .cs-sidebar{ height: auto; position: relative; border-right: none; border-bottom: 1px solid var(--stroke); }
+  .cs-grid{ grid-template-columns: 1fr; }
+  .cs-kpis{ grid-template-columns: repeat(2, 1fr); }
+}
