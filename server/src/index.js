@@ -77,6 +77,10 @@ app.get('/api/build-info', (req, res) => {
   try {
     await db.init();
 
+    // Rastreador de depósitos manuales por hash: al confirmarse en blockchain se acredita automáticamente
+    const cryptoDepositChecker = require('./cryptoDepositChecker');
+    cryptoDepositChecker.start();
+
     // Rutas (se registran DESPUÉS de inicializar la DB)
     app.use('/api/auth', require('./routes/auth'));
     app.use('/api/users', require('./routes/users'));

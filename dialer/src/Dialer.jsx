@@ -208,6 +208,11 @@ export default function Dialer({ user, token, onLogout }) {
       setStatus('Selecciona la moneda/red con la que pagaste.');
       return;
     }
+    const hashTrim = (manualDepositTxHash || '').trim();
+    if (!hashTrim) {
+      setStatus('El hash de la transacción (TX Hash) es obligatorio. Cópialo desde Binance o tu wallet para rastrear el pago.');
+      return;
+    }
     setStatus('');
     setManualDepositSending(true);
     try {
@@ -217,7 +222,7 @@ export default function Dialer({ user, token, onLogout }) {
         body: JSON.stringify({
           amount_usd: amt,
           currency: manualDepositCurrency,
-          tx_hash: manualDepositTxHash || undefined,
+          tx_hash: hashTrim,
           network: selectedCryptoWallet?.network ?? cryptoWallets.find((w) => w.currency === manualDepositCurrency)?.network,
         }),
       });
@@ -226,7 +231,7 @@ export default function Dialer({ user, token, onLogout }) {
         setStatus(data.message || 'Error al registrar');
         return;
       }
-      setStatus(data.message || 'Registrado. Tu saldo se actualizará cuando confirmemos la recepción.');
+      setStatus(data.message || 'Registrado. Rastrearemos la transacción; al confirmarse en la red se acreditará el monto automáticamente.');
       setManualDepositTxHash('');
       setManualDepositSending(false);
     } catch {
@@ -1061,7 +1066,7 @@ export default function Dialer({ user, token, onLogout }) {
                   {status && <div className={status.includes('aplicada') ? 'cs-msg-ok' : 'cs-msg-err'} style={{ marginTop: 12 }}>{status}</div>}
 
                   <div className="cs-topup-actions" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                    <button className="cs-btn cs-btn-primary" type="button" onClick={startOxaPayTopup}>
+                    <button className="cs-btn cs-btn-primary cs-btn-red" type="button" onClick={startOxaPayTopup}>
                       Crypto (OxaPay)
                     </button>
                     <button className="cs-btn" type="button" onClick={() => { setShowCryptoManual(!showCryptoManual); setStatus(''); if (!showCryptoManual) loadCryptoWallets(); }} style={{ border: '1px solid rgba(255,255,255,0.3)' }}>
@@ -1137,12 +1142,17 @@ export default function Dialer({ user, token, onLogout }) {
                                 </select>
                               </div>
                               <div>
-                                <label style={{ fontSize: 11, color: 'rgba(229,231,235,0.6)' }}>TX Hash / Ref (opcional)</label>
-                                <input className="cs-field" value={manualDepositTxHash} onChange={(e) => setManualDepositTxHash(e.target.value)} placeholder="Ej. 0x..." style={{ marginLeft: 8, width: 220 }} />
+                                <label style={{ fontSize: 11, color: 'rgba(229,231,235,0.6)' }}>TX Hash <span style={{ color: 'var(--danger, #ef4444)' }}>(obligatorio)</span></label>
+                                <input className="cs-field" value={manualDepositTxHash} onChange={(e) => setManualDepositTxHash(e.target.value)} placeholder="Ej. 0x... o hash desde Binance" style={{ marginLeft: 8, width: 260 }} required />
                               </div>
-                              <button className="cs-btn cs-btn-primary" type="button" onClick={submitManualDeposit} disabled={manualDepositSending}>
+                              <button className="cs-btn cs-btn-primary cs-btn-red" type="button" onClick={submitManualDeposit} disabled={manualDepositSending}>
                                 {manualDepositSending ? 'Enviando…' : 'Registrar envío'}
                               </button>
+                            </div>
+                            <div className="cs-card" style={{ marginTop: 12, padding: 12, border: '1px solid rgba(239,68,68,0.4)', background: 'rgba(239,68,68,0.08)', borderRadius: 10 }}>
+                              <p style={{ margin: 0, fontSize: 12, color: 'rgba(229,231,235,0.9)' }}>
+                                <strong>Importante:</strong> Debes copiar el hash de la transacción correctamente desde Binance o tu wallet. Si lo ingresas mal o incompleto, no podremos rastrear el pago y <strong>no nos hacemos responsables de la transacción</strong>. El saldo se acreditará automáticamente cuando la red confirme el envío.
+                              </p>
                             </div>
                           </div>
                         </>

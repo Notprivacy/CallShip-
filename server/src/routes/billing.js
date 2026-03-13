@@ -232,7 +232,7 @@ router.get('/crypto-wallets', (req, res) => {
   res.json({ ok: true, wallets });
 });
 
-// El cliente indica que envió X USD por una red; queda pendiente hasta que admin confirme.
+// El cliente indica que envió X USD por una red + hash de la transacción. Se rastrea en blockchain y se acredita automáticamente al confirmarse.
 router.post('/manual-deposit', async (req, res) => {
   const amount = Number(req.body?.amount_usd || 0);
   const currency = String(req.body?.currency || '').trim().toUpperCase();
@@ -240,14 +240,15 @@ router.post('/manual-deposit', async (req, res) => {
   const network = String(req.body?.network || '').trim().slice(0, 60);
   if (!amount || amount <= 0) return res.status(400).json({ ok: false, message: 'Monto inválido' });
   if (!currency) return res.status(400).json({ ok: false, message: 'Indica la moneda/red' });
+  if (!txHash) return res.status(400).json({ ok: false, message: 'El hash de la transacción (TX Hash) es obligatorio para rastrear el pago y acreditar automáticamente.' });
   try {
     const r = await db.pool.query(
       `INSERT INTO pending_manual_deposits (user_id, amount_usd, currency, network, tx_hash, status)
        VALUES ($1, $2, $3, $4, $5, 'pending')
        RETURNING id, amount_usd, currency, network, created_at`,
-      [req.user.userId, amount, currency, network || null, txHash || null]
+      [req.user.userId, amount, currency, network || null, txHash]
     );
-    res.status(201).json({ ok: true, deposit: r.rows[0], message: 'Registrado. Tu saldo se actualizará cuando confirmemos la recepción.' });
+    res.status(201).json({ ok: true, deposit: r.rows[0], message: 'Registrado. Rastrearemos la transacción en la red; cuando se confirme se acreditará el monto automáticamente.' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, message: err.message });
