@@ -69,6 +69,7 @@ export default function Dialer({ user, token, onLogout }) {
     email: '', address1: '', address2: '', city: '', province_state: '', zip_postal_code: '', country: '', timezone: '', fax_number: '',
   });
   const [profileSaving, setProfileSaving] = useState(false);
+  const [oxaPayRedirecting, setOxaPayRedirecting] = useState(false);
 
   const loadCalls = () => {
     fetch(`${API}/calls`, { headers: { Authorization: `Bearer ${token}` } })
@@ -172,6 +173,7 @@ export default function Dialer({ user, token, onLogout }) {
       return;
     }
     setStatus('');
+    setOxaPayRedirecting(true);
     try {
       const res = await fetch(`${API}/billing/oxapay/invoice`, {
         method: 'POST',
@@ -180,6 +182,7 @@ export default function Dialer({ user, token, onLogout }) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) {
+        setOxaPayRedirecting(false);
         const msg = data.message || 'No se pudo crear el pago';
         const hint = /invalid|api key|key|ip|merchant/i.test(msg)
           ? ' Usa Recarga manual mientras configuras OxaPay.'
@@ -187,8 +190,11 @@ export default function Dialer({ user, token, onLogout }) {
         setStatus(msg + hint);
         return;
       }
-      window.location.href = data.payment_url;
+      // Abrir en nueva pestaña para que la app no se descargue y sienta más rápido
+      window.open(data.payment_url, '_blank', 'noopener,noreferrer');
+      setOxaPayRedirecting(false);
     } catch {
+      setOxaPayRedirecting(false);
       setStatus('Error de conexión. Usa Recarga manual si hace falta.');
     }
   };
@@ -1066,8 +1072,8 @@ export default function Dialer({ user, token, onLogout }) {
                   {status && <div className={status.includes('aplicada') ? 'cs-msg-ok' : 'cs-msg-err'} style={{ marginTop: 12 }}>{status}</div>}
 
                   <div className="cs-topup-actions" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                    <button className="cs-btn cs-btn-primary cs-btn-red" type="button" onClick={startOxaPayTopup}>
-                      Crypto (OxaPay)
+                    <button className="cs-btn cs-btn-primary cs-btn-red" type="button" onClick={startOxaPayTopup} disabled={oxaPayRedirecting}>
+                      {oxaPayRedirecting ? 'Redirigiendo al pago…' : 'Crypto (OxaPay)'}
                     </button>
                     <button className="cs-btn" type="button" onClick={() => { setShowCryptoManual(!showCryptoManual); setStatus(''); if (!showCryptoManual) loadCryptoWallets(); }} style={{ border: '1px solid rgba(255,255,255,0.3)' }}>
                       {showCryptoManual ? 'Ocultar recarga manual' : 'Recarga manual (cripto)'}

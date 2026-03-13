@@ -94,13 +94,14 @@ router.post('/oxapay/invoice', async (req, res) => {
     const trackId = json.data.track_id;
     const paymentUrl = json.data.payment_url;
 
-    await db.pool.query(
+    // Responder al cliente de inmediato para que abra el invoice lo antes posible
+    res.json({ ok: true, track_id: trackId, payment_url: paymentUrl, expired_at: json.data.expired_at || null });
+
+    db.pool.query(
       `INSERT INTO oxapay_invoices (user_id, track_id, amount_usd, status, payment_url)
        VALUES ($1,$2,$3,'pending',$4)`,
       [req.user.userId, trackId, amount, paymentUrl]
-    );
-
-    res.json({ ok: true, track_id: trackId, payment_url: paymentUrl, expired_at: json.data.expired_at || null });
+    ).catch((err) => console.error('[OxaPay invoice] insert', err.message));
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, message: err.message });
