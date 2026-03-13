@@ -1245,13 +1245,17 @@ export default function Dialer({ user, token, onLogout }) {
                       )}
                     </div>
                   )}
-                  <p style={{ marginTop: 12, fontSize: 12, color: 'rgba(229,231,235,0.6)' }}>
-                    Si OxaPay da error de clave: usa <strong>Merchant API Key</strong> (no Payout) y añade la IP del servidor.{' '}
-                    <button type="button" className="cs-link-btn" style={{ padding: 0, fontSize: 12 }} onClick={fetchServerIp}>
-                      Ver IP del servidor
-                    </button>
-                  </p>
-                  {serverIpHint && <div className="cs-msg-ok" style={{ marginTop: 8, wordBreak: 'break-all' }}>{serverIpHint}</div>}
+                  {user?.isAdmin && (
+                    <>
+                      <p style={{ marginTop: 12, fontSize: 12, color: 'rgba(229,231,235,0.6)' }}>
+                        Si OxaPay da error de clave: usa <strong>Merchant API Key</strong> (no Payout) y añade la IP del servidor.{' '}
+                        <button type="button" className="cs-link-btn" style={{ padding: 0, fontSize: 12 }} onClick={fetchServerIp}>
+                          Ver IP del servidor
+                        </button>
+                      </p>
+                      {serverIpHint && <div className="cs-msg-ok" style={{ marginTop: 8, wordBreak: 'break-all' }}>{serverIpHint}</div>}
+                    </>
+                  )}
                   <div style={{ marginTop: 16 }}>
                     <div className="cs-section-head">
                       <h3 style={{ margin: 0 }}>Payments</h3>
