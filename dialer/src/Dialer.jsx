@@ -535,7 +535,9 @@ export default function Dialer({ user, token, onLogout }) {
             <img src="/logo.png" alt="CallShip" className="cs-logo-img" />
           </div>
           <div>
-            <h1>CallShip</h1>
+            <h1 className="cs-brand-title">
+              <span className="cs-brand-azul">Call</span><span className="cs-brand-blanco">S</span><span className="cs-brand-rojo">hip</span>
+            </h1>
             <p>Panel de llamadas</p>
           </div>
         </div>

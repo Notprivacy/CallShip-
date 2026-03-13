@@ -170,13 +170,27 @@ button, input { font: inherit; }
   display: block;
 }
 /* Logo se muestra con <img> en Dialer.jsx; ::after ya no se usa aquí */
-.cs-brand h1{
-  font-size: 16px;
+/* CallShip: más grande, tres colores bandera dominicana (azul, blanco, rojo) */
+.cs-brand-title{
+  font-size: 26px;
+  font-weight: 800;
   margin: 0;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.4);
+}
+.cs-brand-azul{
+  color: #002D62;   /* azul bandera dominicana */
+}
+.cs-brand-blanco{
+  color: #FFFFFF;   /* blanco bandera dominicana */
+  text-shadow: 0 0 1px rgba(0,0,0,0.5), 0 2px 12px rgba(0,0,0,0.4);
+}
+.cs-brand-rojo{
+  color: #CE1126;   /* rojo bandera dominicana */
 }
 .cs-brand p{
-  margin: 1px 0 0 0;
+  margin: 3px 0 0 0;
   font-size: 12px;
   color: var(--muted-2);
 }
