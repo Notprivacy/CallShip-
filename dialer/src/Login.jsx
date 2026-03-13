@@ -59,7 +59,9 @@ export default function Login({ onLogin }) {
         <div className="cs-login-clip">
           <div className="cs-login-hero-top">
             <div className="kicker">CallShip Dialer</div>
-            <div className="title">CallShip</div>
+            <div className="title cs-login-title">
+              <span className="cs-brand-azul">Call</span><span className="cs-brand-blanco">S</span><span className="cs-brand-rojo">hip</span>
+            </div>
             <div className="subtitle">{isRegister ? 'Crear cuenta' : 'Acceso al panel'}</div>
           </div>
 
