@@ -1245,7 +1245,8 @@ export default function Dialer({ user, token, onLogout }) {
                       )}
                     </div>
                   )}
-                  {user?.isAdmin && (
+                  {/* Solo admin ve hint de OxaPay y botón Ver IP del servidor; clientes no lo ven */}
+                  {user && user.isAdmin === true && (
                     <>
                       <p style={{ marginTop: 12, fontSize: 12, color: 'rgba(229,231,235,0.6)' }}>
                         Si OxaPay da error de clave: usa <strong>Merchant API Key</strong> (no Payout) y añade la IP del servidor.{' '}
