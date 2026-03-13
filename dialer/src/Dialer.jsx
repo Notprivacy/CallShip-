@@ -592,7 +592,7 @@ export default function Dialer({ user, token, onLogout }) {
       <main className="cs-main">
         <div className="cs-topbar">
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
-            <div className="cs-only-chase-money-topbar" style={{ width: '100%', textAlign: 'center', fontSize: 22, fontWeight: 800, color: '#ff3333', letterSpacing: '0.04em', textShadow: '0 0 20px rgba(255,51,51,0.6), 0 0 40px rgba(255,51,51,0.3)' }}>
+            <div className="cs-only-chase-money-topbar">
               ❗️ONLY CHASE MONEY❗️
             </div>
           </div>

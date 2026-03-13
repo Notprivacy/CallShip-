@@ -269,12 +269,30 @@ button, input { font: inherit; }
   color: var(--muted);
   font-size: 13px;
 }
+/* Mismo rojo que CALLSHIP (bandera dominicana), más grande y ancho */
 .cs-only-chase-money-topbar{
   display: block;
+  width: 100%;
   max-width: 100%;
+  text-align: center;
+  font-size: 26px;
+  font-weight: 800;
+  color: #CE1126;
+  letter-spacing: 0.12em;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.4);
+  padding: 4px 0;
 }
 @media (min-width: 600px) {
-  .cs-only-chase-money-topbar{ font-size: 24px !important; }
+  .cs-only-chase-money-topbar{
+    font-size: 32px;
+    letter-spacing: 0.18em;
+  }
+}
+@media (min-width: 900px) {
+  .cs-only-chase-money-topbar{
+    font-size: 36px;
+    letter-spacing: 0.22em;
+  }
 }
 .cs-pill{
   padding: 6px 10px;
