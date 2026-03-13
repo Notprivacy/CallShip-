@@ -15,11 +15,11 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// --- Rate limit estricto para login y registro: anti brute force ---
+// --- Rate limit para auth: login, registro y recuperar contraseña (evita bloqueo por varios clics en "Enviar solicitud") ---
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 6, // máx 6 intentos de login/registro por IP cada 15 min
-  message: { ok: false, message: 'Demasiados intentos. Intenta más tarde.' },
+  max: 20, // 20 intentos por IP cada 15 min (login + registro + recuperar contraseña)
+  message: { ok: false, message: 'Demasiados intentos. Espera unos 15 minutos e intenta de nuevo.' },
   standardHeaders: true,
   legacyHeaders: false,
 });

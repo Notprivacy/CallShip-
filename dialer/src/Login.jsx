@@ -10,6 +10,7 @@ export default function Login({ onLogin }) {
   const [success, setSuccess] = useState('');
   const [isRegister, setIsRegister] = useState(false);
   const [isForgot, setIsForgot] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -24,6 +25,7 @@ export default function Login({ onLogin }) {
         setError('Indica tu correo electrónico');
         return;
       }
+      setSubmitting(true);
       try {
         const res = await fetch(`${API}/auth/forgot-password`, {
           method: 'POST',
@@ -32,17 +34,25 @@ export default function Login({ onLogin }) {
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          setError(data.message || 'Error al solicitar recuperación');
+          if (res.status === 429) {
+            setError('Demasiados intentos. Espera unos 15 minutos antes de volver a intentar (login, crear cuenta o recuperar contraseña).');
+          } else {
+            setError(data.message || 'Error al solicitar recuperación');
+          }
+          setSubmitting(false);
           return;
         }
-        setSuccess(data.message || 'Revisa tu correo para restablecer tu contraseña.');
+        setSuccess(data.message || 'Revisa tu correo (y carpeta de spam) para restablecer tu contraseña.');
+        setSubmitting(false);
         return;
       } catch {
         setError('No se pudo conectar al servidor.');
+        setSubmitting(false);
         return;
       }
     }
 
+    setSubmitting(true);
     const url = isRegister ? `${API}/auth/register` : `${API}/auth/login`;
     const body = { username: userTrim, password: passTrim };
     try {
@@ -53,7 +63,11 @@ export default function Login({ onLogin }) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        // Si el proxy no puede conectar al backend (ECONNREFUSED) Vite suele devolver 502 o error de red
+        setSubmitting(false);
+        if (res.status === 429) {
+          setError('Demasiados intentos. Espera unos 15 minutos antes de volver a intentar.');
+          return;
+        }
         const connectionFailed = res.status === 0 || res.status === 502 || res.status === 503 || res.status === 504;
         const apiMessage = data.error || data.message;
         if (connectionFailed || (res.status >= 500 && !apiMessage)) {
@@ -66,15 +80,18 @@ export default function Login({ onLogin }) {
       if (isRegister) {
         setIsRegister(false);
         setSuccess('Registro exitoso. Ahora puedes iniciar sesión.');
+        setSubmitting(false);
         return;
       }
       if (!data.token || !data.user) {
         setError('La API no devolvió sesión. Revisa el servidor.');
+        setSubmitting(false);
         return;
       }
       onLogin(data.token, data.user);
     } catch {
       setError('No se pudo conectar al servidor. ¿Está la API en marcha?');
+      setSubmitting(false);
     }
   };
 
@@ -139,8 +156,8 @@ export default function Login({ onLogin }) {
                 {error && <p className="cs-msg-err">{error}</p>}
 
                 <div className="cs-login-cta">
-                  <button type="submit" className="cs-btn cs-btn-primary">
-                    {isForgot ? 'Enviar solicitud' : isRegister ? 'Registrarse' : 'Entrar'}
+                  <button type="submit" className="cs-btn cs-btn-primary" disabled={submitting}>
+                    {submitting ? (isForgot ? 'Enviando…' : 'Entrando…') : (isForgot ? 'Enviar solicitud' : isRegister ? 'Registrarse' : 'Entrar')}
                   </button>
                 </div>
                 {!isForgot && (

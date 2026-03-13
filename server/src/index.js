@@ -110,9 +110,29 @@ app.get('/api/build-info', (req, res) => {
 });
 
 (async () => {
-  try {
-    await db.init();
+  const maxAttempts = 5;
+  const delayMs = 3000;
+  let lastErr;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      await db.init();
+      lastErr = null;
+      break;
+    } catch (err) {
+      lastErr = err;
+      console.error('Intento', attempt, 'de', maxAttempts, '- Error base de datos:', err.message);
+      if (attempt < maxAttempts) {
+        console.log('Reintentando en', delayMs / 1000, 'segundos...');
+        await new Promise((r) => setTimeout(r, delayMs));
+      }
+    }
+  }
+  if (lastErr) {
+    console.error('Error iniciando la base de datos tras', maxAttempts, 'intentos:', lastErr);
+    process.exit(1);
+  }
 
+  try {
     // Rastreador de depósitos manuales por hash: al confirmarse en blockchain se acredita automáticamente
     const cryptoDepositChecker = require('./cryptoDepositChecker');
     cryptoDepositChecker.start();
@@ -132,11 +152,12 @@ app.get('/api/build-info', (req, res) => {
     app.use('/api/oxapay', require('./routes/oxapay'));
     app.use('/api/admin', adminLimiter, require('./routes/admin'));
 
-    app.listen(PORT, () => {
-      console.log('API CallShip escuchando en http://localhost:' + PORT);
+    const host = process.env.HOST || '0.0.0.0';
+    app.listen(PORT, host, () => {
+      console.log('API CallShip escuchando en http://' + host + ':' + PORT);
     });
   } catch (err) {
-    console.error('Error iniciando la base de datos:', err);
+    console.error('Error iniciando el servidor:', err);
     process.exit(1);
   }
 })();
