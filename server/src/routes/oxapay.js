@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const { applyReloadWithLoyalty } = require('../loyalty');
 
 /**
  * Callback/webhook de OxaPay.
@@ -46,10 +47,7 @@ router.post('/callback', async (req, res) => {
              VALUES ($1,$2,$3,$4)`,
             [row.user_id, Number(amt), 'oxapay', String(trackId)]
           );
-          await db.pool.query(
-            `UPDATE users SET balance_usd = COALESCE(balance_usd, 0) + $1 WHERE id = $2`,
-            [Number(amt), row.user_id]
-          );
+          await applyReloadWithLoyalty(row.user_id, Number(amt));
         }
       }
     }

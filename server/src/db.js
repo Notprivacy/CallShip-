@@ -169,6 +169,9 @@ async function initSqlite() {
   // Migraciones suaves (SQLite): si la tabla ya existía, añadimos columnas nuevas si faltan.
   try { sqliteDb.exec(`ALTER TABLE users ADD COLUMN balance_usd REAL DEFAULT 0`); } catch {}
   try { sqliteDb.exec(`ALTER TABLE users ADD COLUMN status TEXT DEFAULT 'active'`); } catch {}
+  try { sqliteDb.exec(`ALTER TABLE users ADD COLUMN total_reloaded_usd REAL DEFAULT 0`); } catch {}
+  try { sqliteDb.exec(`ALTER TABLE users ADD COLUMN loyalty_bonuses_given INTEGER DEFAULT 0`); } catch {}
+  try { sqliteDb.exec(`ALTER TABLE users ADD COLUMN last_loyalty_bonus_at TEXT`); } catch {}
   // (SQLite no soporta ADD COLUMN IF NOT EXISTS)
   try { sqliteDb.exec(`ALTER TABLE sip_devices ADD COLUMN caller_name TEXT`); } catch {}
   try { sqliteDb.exec(`ALTER TABLE sip_devices ADD COLUMN caller_number TEXT`); } catch {}
@@ -364,6 +367,10 @@ async function initPg() {
   // Migraciones suaves (PostgreSQL) si la tabla ya existía
   await p.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS balance_usd NUMERIC(12,4) DEFAULT 0;`);
   await p.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS status VARCHAR(30) DEFAULT 'active';`);
+  // Lealtad: recargas acumuladas X/100 → +10 USD en balance
+  await p.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS total_reloaded_usd NUMERIC(12,4) DEFAULT 0;`);
+  await p.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS loyalty_bonuses_given INTEGER DEFAULT 0;`);
+  await p.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_loyalty_bonus_at TIMESTAMP;`);
   await p.query(`ALTER TABLE sip_devices ADD COLUMN IF NOT EXISTS caller_name VARCHAR(120);`);
   await p.query(`ALTER TABLE sip_devices ADD COLUMN IF NOT EXISTS caller_number VARCHAR(60);`);
   await p.query(`ALTER TABLE sip_devices ADD COLUMN IF NOT EXISTS voicemail SMALLINT DEFAULT 1;`);

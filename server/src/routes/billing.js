@@ -107,17 +107,30 @@ router.post('/oxapay/invoice', async (req, res) => {
   }
 });
 
-// Balance del usuario: usamos users.balance_usd (que se actualiza con recargas admin y topups)
+// Balance de llamadas (balance_usd) + balance de lealtad (Payment: X/100). Al llegar a 100/100 se acreditan +10 al balance de llamadas y el de lealtad vuelve a 0/100.
 router.get('/balance', async (req, res) => {
   try {
     const r = await db.pool.query(
-      `SELECT COALESCE(balance_usd, 0) AS balance_usd
+      `SELECT COALESCE(balance_usd, 0) AS balance_usd,
+              COALESCE(total_reloaded_usd, 0) AS total_reloaded_usd,
+              COALESCE(loyalty_bonuses_given, 0) AS loyalty_bonuses_given,
+              last_loyalty_bonus_at
        FROM users
        WHERE id = $1`,
       [req.user.userId]
     );
-    const balance = Number(r.rows[0]?.balance_usd || 0);
-    res.json({ ok: true, balance_usd: balance });
+    const row = r.rows[0];
+    const balance = Number(row?.balance_usd || 0);
+    const totalReloaded = Number(row?.total_reloaded_usd || 0);
+    // Progreso hacia el próximo 100: 0..100. Tras acreditar el bono, vuelve a 0/100 y se repite el ciclo.
+    const paymentProgress = Number((totalReloaded % 100).toFixed(2));
+    res.json({
+      ok: true,
+      balance_usd: balance,
+      payment_progress: paymentProgress,
+      payment_target: 100,
+      last_loyalty_bonus_at: row?.last_loyalty_bonus_at || null,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, message: 'Error al calcular balance' });

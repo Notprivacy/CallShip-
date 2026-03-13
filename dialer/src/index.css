@@ -269,6 +269,13 @@ button, input { font: inherit; }
   color: var(--muted);
   font-size: 13px;
 }
+.cs-only-chase-money-topbar{
+  display: block;
+  max-width: 100%;
+}
+@media (min-width: 600px) {
+  .cs-only-chase-money-topbar{ font-size: 24px !important; }
+}
 .cs-pill{
   padding: 6px 10px;
   border-radius: 999px;

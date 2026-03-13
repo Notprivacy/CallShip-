@@ -591,27 +591,33 @@ export default function Dialer({ user, token, onLogout }) {
 
       <main className="cs-main">
         <div className="cs-topbar">
-          <div>
-            <h2>{active === 'account-profile' ? 'My Profile' : active === 'account-sipdevices' ? 'SIP Devices' : active === 'account-changepassword' ? 'Change Password' : active === 'cdr' ? 'Registro CDR' : active === 'calls' ? 'Llamadas' : active === 'billing' ? 'Billing' : active === 'rates' ? 'Rates' : active === 'reports' ? 'Reportes' : active === 'settings' ? 'Settings' : active === 'products' ? 'Productos' : active === 'transactions' ? 'Pendientes / Transacciones' : active === 'admin-customers' ? 'Clientes (Admin)' : 'Dashboard'}</h2>
-            <div style={{ marginTop: 4, color: 'rgba(229,231,235,0.55)', fontSize: 12 }}>
-              {active === 'account-profile'
-                ? 'Tu perfil y datos de cuenta'
-                : active === 'account-sipdevices'
-                ? 'Dispositivos SIP para llamadas'
-                : active === 'account-changepassword'
-                ? 'Cambiar tu contraseña'
-                : active === 'cdr'
-                ? 'Registro de llamadas con fecha, hora, duración y disposición'
-                : active === 'admin-customers'
-                ? 'Gestión de clientes: saldo, estado y datos de contacto'
-                : active === 'transactions'
-                ? 'Todas tus transacciones: pagos, depósitos manuales e invoices OxaPay con fecha, hora y estado'
-                : 'Resumen rápido y registro de actividad'}
-            </div>
+          <div style={active === 'settings' ? { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 } : undefined}>
+            {active === 'settings' ? (
+              <div className="cs-only-chase-money-topbar" style={{ width: '100%', textAlign: 'center', fontSize: 22, fontWeight: 800, color: '#facc15', letterSpacing: '0.04em', textShadow: '0 0 20px rgba(250,204,21,0.4)' }}>
+                ❗️ONLY CHASE MONEY❗️
+              </div>
+            ) : (
+              <>
+                <h2>{active === 'account-profile' ? 'My Profile' : active === 'account-sipdevices' ? 'SIP Devices' : active === 'account-changepassword' ? 'Change Password' : active === 'cdr' ? 'Registro CDR' : active === 'calls' ? 'Llamadas' : active === 'billing' ? 'Billing' : active === 'rates' ? 'Rates' : active === 'reports' ? 'Reportes' : active === 'products' ? 'Productos' : active === 'transactions' ? 'Pendientes / Transacciones' : active === 'admin-customers' ? 'Clientes (Admin)' : 'Dashboard'}</h2>
+                <div style={{ marginTop: 4, color: 'rgba(229,231,235,0.55)', fontSize: 12 }}>
+                  {active === 'account-profile'
+                    ? 'Tu perfil y datos de cuenta'
+                    : active === 'account-sipdevices'
+                    ? 'Dispositivos SIP para llamadas'
+                    : active === 'account-changepassword'
+                    ? 'Cambiar tu contraseña'
+                    : active === 'cdr'
+                    ? 'Registro de llamadas con fecha, hora, duración y disposición'
+                    : active === 'admin-customers'
+                    ? 'Gestión de clientes: saldo, estado y datos de contacto'
+                    : active === 'transactions'
+                    ? 'Todas tus transacciones: pagos, depósitos manuales e invoices OxaPay con fecha, hora y estado'
+                    : 'Resumen rápido y registro de actividad'}
+                </div>
+              </>
+            )}
           </div>
           <div className="cs-user" style={{ display: 'flex', alignItems: 'center', gap: 12, position: 'relative' }}>
-            <span className="cs-pill">Servidor: OK</span>
-            <span className="cs-pill">Modo: Operador</span>
             <button
               type="button"
               className="cs-btn"
@@ -1247,21 +1253,11 @@ export default function Dialer({ user, token, onLogout }) {
         )}
 
         {active === 'settings' && (
-          <section className="cs-card" style={{ marginTop: 16 }}>
-            <div className="cs-section-head">
-              <h3>Settings</h3>
-              <button className="cs-link-btn" type="button" onClick={loadSettings}>Refrescar</button>
+          <div className="cs-only-chase-money-block" style={{ marginTop: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 320, padding: 40, background: 'linear-gradient(135deg, rgba(250,204,21,0.12) 0%, rgba(0,0,0,0.3) 100%)', borderRadius: 20, border: '2px solid rgba(250,204,21,0.35)' }}>
+            <div style={{ fontSize: 'clamp(28px, 5vw, 48px)', fontWeight: 900, color: '#facc15', textAlign: 'center', letterSpacing: '0.04em', textShadow: '0 0 30px rgba(250,204,21,0.5), 0 4px 20px rgba(0,0,0,0.4)' }}>
+              ❗️ONLY CHASE MONEY❗️
             </div>
-            {!settings ? (
-              <div className="cs-muted">Cargando settings…</div>
-            ) : (
-              <div className="cs-card" style={{ padding: 12, background: 'rgba(255,255,255,0.04)' }}>
-                <div style={{ fontWeight: 800, marginBottom: 6 }}>SIP</div>
-                <div className="cs-muted">Host: <strong>{settings.sip?.host}</strong></div>
-                <div className="cs-muted">Usuario: <strong>{settings.sip?.username}</strong></div>
-              </div>
-            )}
-          </section>
+          </div>
         )}
 
         {active === 'admin-customers' && (

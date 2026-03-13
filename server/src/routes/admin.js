@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const { applyReloadWithLoyalty } = require('../loyalty');
 const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'cambiar-en-produccion';
@@ -136,13 +137,7 @@ router.post('/customers/:id/topup', async (req, res) => {
        VALUES ($1, $2, $3)`,
       [id, amount, note || null]
     );
-    await db.pool.query(
-      `UPDATE users
-       SET balance_usd = COALESCE(balance_usd, 0) + $1
-       WHERE id = $2`,
-      [amount, id]
-    );
-    // Registrar en payments para que /billing/balance y el dashboard muestren el saldo
+    await applyReloadWithLoyalty(id, amount);
     await db.pool.query(
       `INSERT INTO payments (user_id, amount_usd, method, reference)
        VALUES ($1, $2, $3, $4)`,
@@ -211,10 +206,7 @@ router.post('/pending-deposits/:id/confirm', async (req, res) => {
     );
     if (!dep.rows.length) return res.status(404).json({ ok: false, error: 'Depósito no encontrado o ya procesado' });
     const { user_id, amount_usd } = dep.rows[0];
-    await db.pool.query(
-      'UPDATE users SET balance_usd = COALESCE(balance_usd, 0) + $1 WHERE id = $2',
-      [amount_usd, user_id]
-    );
+    await applyReloadWithLoyalty(user_id, amount_usd);
     await db.pool.query(
       `INSERT INTO payments (user_id, amount_usd, method, reference) VALUES ($1, $2, $3, $4)`,
       [user_id, amount_usd, 'manual_crypto', 'Depósito manual confirmado']
