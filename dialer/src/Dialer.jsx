@@ -759,92 +759,7 @@ export default function Dialer({ user, token, onLogout }) {
           </div>
         )}
 
-        {active === 'dashboard' && (
-        <div className="cs-split" style={{ marginTop: 16 }}>
-          <section className="cs-card">
-            <div className="cs-section-head">
-              <h3>Active Products</h3>
-              <button className="cs-link-btn" type="button" onClick={() => { setActive('products'); loadProducts(); }}>Ver todo</button>
-            </div>
-            <div className="cs-muted" style={{ marginBottom: 10 }}>
-              Productos activos en tu cuenta (panel demo).
-            </div>
-            <table className="cs-table">
-              <thead>
-                <tr>
-                  <th>Nombre</th>
-                  <th>Categoría</th>
-                  <th>Precio</th>
-                  <th>Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(products.length ? products : [{ id: 'demo', name: 'CallShip Dialer', category: 'Dialer', price_usd: 0, status: 'active' }]).slice(0, 5).map((p) => (
-                  <tr key={p.id}>
-                    <td><strong>{p.name}</strong></td>
-                    <td>{p.category || '—'}</td>
-                    <td>${Number(p.price_usd || 0).toFixed(2)}</td>
-                    <td><span className="cs-tag cs-tag-new">{p.status || 'active'}</span></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <p className="cs-help" style={{ marginTop: 10 }}>
-              Luego conectamos pagos/planes reales y múltiples productos.
-            </p>
-          </section>
-
-          <section className="cs-card">
-            <div className="cs-section-head">
-              <h3>Registrar llamada</h3>
-              <button className="cs-link-btn" type="button" onClick={loadCalls}>Refrescar</button>
-            </div>
-            <form onSubmit={handleRegisterCall}>
-              <input
-                type="text"
-                placeholder="Cliente / contacto"
-                value={customer}
-                onChange={(e) => setCustomer(e.target.value)}
-                className="cs-field"
-                style={{ marginBottom: 10 }}
-              />
-              <div className="cs-row">
-                <input
-                  type="tel"
-                  placeholder="Teléfono"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="cs-field"
-                />
-                <input
-                  type="text"
-                  placeholder="Estado (por defecto: nueva)"
-                  value="nueva"
-                  readOnly
-                  className="cs-field"
-                />
-              </div>
-              <input
-                type="text"
-                placeholder="Notas (opcional)"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                className="cs-field"
-                style={{ marginTop: 10 }}
-              />
-              <div style={{ display: 'flex', gap: 10, marginTop: 12, alignItems: 'center' }}>
-                <button type="submit" disabled={loading} className="cs-btn cs-btn-primary">
-                  {loading ? 'Guardando…' : 'Registrar'}
-                </button>
-                {status && <span style={{ color: 'rgba(229,231,235,0.65)', fontSize: 13 }}>{status}</span>}
-              </div>
-              <p className="cs-help">
-                Esto registra la llamada en tu base. La marcación real (VoIP) se integra después (Masterking / SIP / Twilio).
-              </p>
-            </form>
-          </section>
-        </div>
-        )}
+        {active === 'dashboard' && null}
 
         {active === 'transactions' && (
         <section className="cs-card" style={{ marginTop: 16 }}>
@@ -1340,17 +1255,10 @@ export default function Dialer({ user, token, onLogout }) {
             {!settings ? (
               <div className="cs-muted">Cargando settings…</div>
             ) : (
-              <div style={{ display: 'grid', gap: 12 }}>
-                <div className="cs-card" style={{ padding: 12, background: 'rgba(255,255,255,0.04)' }}>
-                  <div style={{ fontWeight: 800, marginBottom: 6 }}>SIP</div>
-                  <div className="cs-muted">Host: <strong>{settings.sip?.host}</strong></div>
-                  <div className="cs-muted">Usuario: <strong>{settings.sip?.username}</strong></div>
-                </div>
-                <div className="cs-card" style={{ padding: 12, background: 'rgba(255,255,255,0.04)' }}>
-                  <div style={{ fontWeight: 800, marginBottom: 6 }}>Dialer</div>
-                  <div className="cs-muted">Timezone: <strong>{settings.dialer?.timezone}</strong></div>
-                  <div className="cs-muted">Idioma: <strong>{settings.dialer?.language}</strong></div>
-                </div>
+              <div className="cs-card" style={{ padding: 12, background: 'rgba(255,255,255,0.04)' }}>
+                <div style={{ fontWeight: 800, marginBottom: 6 }}>SIP</div>
+                <div className="cs-muted">Host: <strong>{settings.sip?.host}</strong></div>
+                <div className="cs-muted">Usuario: <strong>{settings.sip?.username}</strong></div>
               </div>
             )}
           </section>
