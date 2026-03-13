@@ -1,0 +1,3 @@
+Pon aquí tu logo del dialer con el nombre: logo.png
+(La imagen se mostrará en la barra lateral junto a "CallShip".)
+Formatos válidos: PNG, JPG o WebP. Tamaño recomendado: 72x72 px o similar cuadrado.
