@@ -3,9 +3,7 @@ const router = express.Router();
 const db = require('../db');
 const { applyReloadWithLoyalty } = require('../loyalty');
 const jwt = require('jsonwebtoken');
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cambiar-en-produccion';
-const ADMIN_USERS = (process.env.ADMIN_USERS || 'medinax6').split(',').map((s) => s.trim()).filter(Boolean);
+const { JWT_SECRET, ADMIN_USERS, safeError } = require('../config');
 
 function authAdmin(req, res, next) {
   const header = req.headers.authorization;
@@ -68,7 +66,7 @@ router.get('/customers', async (req, res) => {
     res.json({ ok: true, customers: r.rows, page, pageSize });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ ok: false, error: err.message });
+    res.status(500).json({ ok: false, error: safeError(err) });
   }
 });
 
@@ -118,7 +116,7 @@ router.get('/customers/:id', async (req, res) => {
     res.json({ ok: true, customer: r.rows[0], topups: topups.rows });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ ok: false, error: err.message });
+    res.status(500).json({ ok: false, error: safeError(err) });
   }
 });
 
@@ -151,7 +149,7 @@ router.post('/customers/:id/topup', async (req, res) => {
     res.status(201).json({ ok: true, customer: r.rows[0] });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ ok: false, error: err.message });
+    res.status(500).json({ ok: false, error: safeError(err) });
   }
 });
 
@@ -175,7 +173,7 @@ router.post('/customers/:id/status', async (req, res) => {
     res.json({ ok: true, customer: r.rows[0] });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ ok: false, error: err.message });
+    res.status(500).json({ ok: false, error: safeError(err) });
   }
 });
 
@@ -192,7 +190,7 @@ router.get('/pending-deposits', async (req, res) => {
     res.json({ ok: true, deposits: r.rows });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ ok: false, error: err.message });
+    res.status(500).json({ ok: false, error: safeError(err) });
   }
 });
 
@@ -218,7 +216,7 @@ router.post('/pending-deposits/:id/confirm', async (req, res) => {
     res.json({ ok: true, message: 'Saldo abonado correctamente' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ ok: false, error: err.message });
+    res.status(500).json({ ok: false, error: safeError(err) });
   }
 });
 

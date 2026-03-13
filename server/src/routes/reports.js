@@ -2,8 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const jwt = require('jsonwebtoken');
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cambiar-en-produccion';
+const { JWT_SECRET, safeError } = require('../config');
 
 function authMiddleware(req, res, next) {
   const header = req.headers.authorization;
@@ -44,7 +43,7 @@ router.get('/calls-by-day', async (req, res) => {
     res.json({ ok: true, rows: r.rows });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ ok: false, message: 'Error en reporte' });
+    res.status(500).json({ ok: false, message: safeError(err) });
   }
 });
 

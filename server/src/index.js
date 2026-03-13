@@ -1,13 +1,17 @@
 /**
  * CallShip - Servidor API (tu index original + licencias)
  * PostgreSQL, users (username), calls, licenses. Sirve /public si existe.
+ * Incluye medidas de seguridad: rate limit, helmet, CORS opcional.
  */
 require('dotenv').config();
 const path = require('path');
 const fs = require('fs');
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const db = require('./db');
+const { apiLimiter, authLimiter, adminLimiter, checkJwtSecret, isProd } = require('./middleware/security');
+const { safeError } = require('./config');
 
 // Evitar que excepciones no capturadas o promesas rechazadas tiren el proceso sin log
 process.on('uncaughtException', (err) => {
@@ -17,11 +21,43 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('unhandledRejection:', reason);
 });
 
+checkJwtSecret();
+
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-app.use(cors());
-app.use(express.json());
+// Para que rate limit vea la IP real detrás de Railway/proxy
+app.set('trust proxy', 1);
+
+// Cabeceras de seguridad (XSS, clickjacking, MIME sniffing, CSP)
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"],
+      frameSrc: ["'none'"],
+      objectSrc: ["'none'"],
+    },
+  },
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  crossOriginResourcePolicy: { policy: 'same-site' },
+}));
+
+// CORS: en producción restringe al origen de tu web si defines ALLOWED_ORIGIN
+const allowedOrigins = (process.env.ALLOWED_ORIGIN || '').split(',').map((o) => o.trim()).filter(Boolean);
+const corsOptions = isProd && allowedOrigins.length > 0
+  ? { origin: allowedOrigins, credentials: true }
+  : {};
+app.use(cors(corsOptions));
+
+// Límite de tamaño del body para evitar payloads enormes
+app.use(express.json({ limit: '512kb' }));
+
+// Rate limit global: protege contra abuso y DDoS por IP
+app.use('/api', apiLimiter);
 
 // Archivos estáticos desde /public (frontend build del dialer)
 const publicDir = path.join(__dirname, '..', 'public');
@@ -51,7 +87,7 @@ app.get('/api/ping', async (req, res) => {
     }
   } catch (err) {
     console.error(err);
-    res.status(500).json({ ok: false, error: err.message });
+    res.status(500).json({ ok: false, error: safeError(err) });
   }
 });
 
@@ -69,7 +105,7 @@ app.get('/api/build-info', (req, res) => {
     }
     return res.json({ ok: false, message: 'No existe build.txt', hasPublic: fs.existsSync(publicDir) });
   } catch (e) {
-    return res.json({ ok: false, error: e.message, hasPublic: fs.existsSync(publicDir) });
+    return res.json({ ok: false, error: safeError(e), hasPublic: fs.existsSync(publicDir) });
   }
 });
 
@@ -82,7 +118,8 @@ app.get('/api/build-info', (req, res) => {
     cryptoDepositChecker.start();
 
     // Rutas (se registran DESPUÉS de inicializar la DB)
-    app.use('/api/auth', require('./routes/auth'));
+    // Auth con rate limit estricto para evitar brute force en login/registro
+    app.use('/api/auth', authLimiter, require('./routes/auth'));
     app.use('/api/users', require('./routes/users'));
     app.use('/api/licenses', require('./routes/licenses'));
     app.use('/api/calls', require('./routes/calls'));
@@ -93,7 +130,7 @@ app.get('/api/build-info', (req, res) => {
     app.use('/api/settings', require('./routes/settings'));
     app.use('/api/sip-devices', require('./routes/sipdevices'));
     app.use('/api/oxapay', require('./routes/oxapay'));
-    app.use('/api/admin', require('./routes/admin'));
+    app.use('/api/admin', adminLimiter, require('./routes/admin'));
 
     app.listen(PORT, () => {
       console.log('API CallShip escuchando en http://localhost:' + PORT);

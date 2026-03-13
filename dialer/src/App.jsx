@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Login from './Login';
 import Dialer from './Dialer';
+import ResetPassword from './ResetPassword';
 import CanvasBillsBackground from './CanvasBillsBackground';
 import { API } from './api';
 
@@ -16,6 +17,19 @@ export default function App() {
 
   const [token, setToken] = useState(() => localStorage.getItem('callship_token'));
   const [serverError, setServerError] = useState(false);
+  const [resetKey, setResetKey] = useState(0);
+
+  const onLogoutRef = useRef(null);
+  useEffect(() => {
+    const originalFetch = window.fetch;
+    window.fetch = function (...args) {
+      return originalFetch.apply(this, args).then((res) => {
+        if (res.status === 401 && onLogoutRef.current) onLogoutRef.current();
+        return res;
+      });
+    };
+    return () => { window.fetch = originalFetch; };
+  }, []);
 
   const checkSession = () => {
     setServerError(false);
@@ -34,7 +48,6 @@ export default function App() {
         if (me.status === 401) {
           localStorage.removeItem('callship_token');
           setUser(null);
-          setLicense(null);
           setServerError(false);
           return;
         }
@@ -64,8 +77,19 @@ export default function App() {
     setToken(null);
     setUser(null);
   };
+  onLogoutRef.current = onLogout;
+
+  const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+  const searchToken = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('token') : null;
+  const showResetPage = !token && (pathname === '/reset-password' || pathname === '/reset-password/' || searchToken);
+
+  const onResetDone = () => {
+    window.history.replaceState({}, '', '/');
+    setResetKey((k) => k + 1);
+  };
 
   if (loading) return <div className="cs-login"><CanvasBillsBackground count={85} opacity={0.78} /><div className="cs-login-card">Cargando…</div></div>;
+  if (!token && showResetPage) return <ResetPassword token={searchToken} onDone={onResetDone} />;
   if (!token) return <Login onLogin={onLogin} />;
   if (!user && serverError) {
     return (

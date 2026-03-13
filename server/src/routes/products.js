@@ -2,8 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const jwt = require('jsonwebtoken');
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cambiar-en-produccion';
+const { JWT_SECRET, safeError } = require('../config');
 
 function authMiddleware(req, res, next) {
   const header = req.headers.authorization;
@@ -32,7 +31,7 @@ router.get('/', async (req, res) => {
     res.json({ ok: true, products: r.rows });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ ok: false, message: 'Error al listar productos' });
+    res.status(500).json({ ok: false, message: safeError(err) });
   }
 });
 
@@ -59,7 +58,7 @@ router.post('/', async (req, res) => {
     res.status(201).json({ ok: true, product: r.rows[0] });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ ok: false, message: 'Error al crear producto' });
+    res.status(500).json({ ok: false, message: safeError(err) });
   }
 });
 

@@ -3,8 +3,7 @@ const router = express.Router();
 const db = require('../db');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cambiar-en-produccion';
+const { JWT_SECRET, ADMIN_USERS, safeError } = require('../config');
 
 function authMiddleware(req, res, next) {
   const header = req.headers.authorization;
@@ -21,8 +20,6 @@ function authMiddleware(req, res, next) {
 }
 
 router.use(authMiddleware);
-
-const ADMIN_USERS = (process.env.ADMIN_USERS || 'medinax6').split(',').map((s) => s.trim()).filter(Boolean);
 
 router.get('/me', async (req, res) => {
   try {
@@ -56,17 +53,29 @@ router.get('/me', async (req, res) => {
     res.json({ ...row, isAdmin: ADMIN_USERS.includes(row.username) });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: err.message, ok: false });
+    res.status(500).json({ error: safeError(err), ok: false });
   }
 });
 
 // Actualizar perfil (User Profile)
 router.put('/me', async (req, res) => {
-  const {
-    account_number, company, first_name, last_name,
-    telephone1, telephone2, email, address1, address2,
-    city, province_state, zip_postal_code, country, timezone, fax_number,
-  } = req.body || {};
+  const raw = req.body || {};
+  const max = (s, n) => (s == null ? null : String(s).trim().slice(0, n) || null);
+  const account_number = max(raw.account_number, 80);
+  const company = max(raw.company, 200);
+  const first_name = max(raw.first_name, 100);
+  const last_name = max(raw.last_name, 100);
+  const telephone1 = max(raw.telephone1, 40);
+  const telephone2 = max(raw.telephone2, 40);
+  const email = max(raw.email, 254);
+  const address1 = max(raw.address1, 300);
+  const address2 = max(raw.address2, 300);
+  const city = max(raw.city, 100);
+  const province_state = max(raw.province_state, 100);
+  const zip_postal_code = max(raw.zip_postal_code, 20);
+  const country = max(raw.country, 80);
+  const timezone = max(raw.timezone, 80);
+  const fax_number = max(raw.fax_number, 40);
   try {
     const uid = req.user.userId;
     await db.pool.query(
@@ -90,9 +99,9 @@ router.put('/me', async (req, res) => {
         timezone = EXCLUDED.timezone,
         fax_number = EXCLUDED.fax_number,
         updated_at = CURRENT_TIMESTAMP`,
-      [uid, account_number || null, company || null, first_name || null, last_name || null,
-        telephone1 || null, telephone2 || null, email || null, address1 || null, address2 || null,
-        city || null, province_state || null, zip_postal_code || null, country || null, timezone || null, fax_number || null]
+      [uid, account_number, company, first_name, last_name,
+        telephone1, telephone2, email, address1, address2,
+        city, province_state, zip_postal_code, country, timezone, fax_number]
     );
     const r = await db.pool.query(
       `SELECT u.id, u.username, u.created_at,
@@ -105,7 +114,7 @@ router.put('/me', async (req, res) => {
     res.json({ ok: true, user: r.rows[0] });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ ok: false, error: err.message });
+    res.status(500).json({ ok: false, error: safeError(err) });
   }
 });
 
@@ -118,6 +127,9 @@ router.post('/change-password', async (req, res) => {
   if (new_password.length < 6) {
     return res.status(400).json({ ok: false, error: 'La nueva contraseña debe tener al menos 6 caracteres' });
   }
+  if (new_password.length > 128) {
+    return res.status(400).json({ ok: false, error: 'Contraseña demasiado larga' });
+  }
   try {
     const r = await db.pool.query('SELECT password_hash FROM users WHERE id = $1', [req.user.userId]);
     if (r.rows.length === 0) return res.status(404).json({ ok: false, error: 'Usuario no encontrado' });
@@ -128,7 +140,7 @@ router.post('/change-password', async (req, res) => {
     res.json({ ok: true, message: 'Contraseña actualizada' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ ok: false, error: err.message });
+    res.status(500).json({ ok: false, error: safeError(err) });
   }
 });
 

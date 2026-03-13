@@ -1,0 +1,92 @@
+========================================
+  CÓMO SUBIR LOS CAMBIOS A RAILWAY
+========================================
+
+El build YA ESTÁ HECHO (server/public actualizado).
+Solo falta subir los archivos a Git para que Railway despliegue.
+
+----------------------------------------
+OPCIÓN A — Git Bash (recomendado)
+----------------------------------------
+
+1. Abre "Git Bash" (búscalo en el menú de Windows o en la carpeta de Git).
+
+2. Ve a la carpeta del proyecto:
+   cd /c/Users/Shipe/OneDrive/Escritorio/CallShip
+
+3. Añade todo lo cambiado:
+   git add server/public server/src dialer/src
+
+4. Revisa que se hayan añadido archivos:
+   git status
+
+5. Haz commit y sube:
+   git commit -m "Deploy: hash obligatorio, auto-acreditar blockchain, botones rojos"
+   git push
+
+6. Cuando termine el push, Railway desplegará solo. Luego entra a www.callship.us y haz Ctrl+F5.
+
+
+----------------------------------------
+OPCIÓN B — Símbolo del sistema (CMD)
+----------------------------------------
+
+1. Abre CMD (símbolo del sistema).
+
+2. Ve a la carpeta:
+   cd /d "c:\Users\Shipe\OneDrive\Escritorio\CallShip"
+
+3. Prueba si Git está instalado:
+   "C:\Program Files\Git\bin\git.exe" status
+
+   Si ese comando funciona, usa siempre "C:\Program Files\Git\bin\git.exe" en lugar de "git":
+
+   "C:\Program Files\Git\bin\git.exe" add server/public server/src dialer/src
+   "C:\Program Files\Git\bin\git.exe" status
+   "C:\Program Files\Git\bin\git.exe" commit -m "Deploy: cambios a Railway"
+   "C:\Program Files\Git\bin\git.exe" push
+
+
+----------------------------------------
+OPCIÓN C — Ejecutar el script deploy.bat
+----------------------------------------
+
+1. En la raíz del proyecto (CallShip) ya hay un archivo: deploy.bat
+
+2. Haz doble clic en deploy.bat (o ábrelo desde CMD):
+   cd /d "c:\Users\Shipe\OneDrive\Escritorio\CallShip"
+   deploy.bat
+
+   El script intentará encontrar Git y hará add, commit y push por ti.
+
+
+----------------------------------------
+OPCIÓN D — Desde Cursor / VS Code
+----------------------------------------
+
+1. En Cursor abre la terminal integrada (Terminal > Nueva terminal).
+
+2. Si la terminal es PowerShell y "git" no funciona, cambia el perfil a "Git Bash":
+   - Abre la paleta: Ctrl+Shift+P
+   - Escribe: Terminal: Select Default Profile
+   - Elige "Git Bash"
+
+3. En la terminal:
+   cd "c:\Users\Shipe\OneDrive\Escritorio\CallShip"
+   git add server/public server/src dialer/src
+   git status
+   git commit -m "Deploy: cambios a Railway"
+   git push
+
+
+========================================
+SI EL PUSH FALLA
+========================================
+
+- "remote not found" o "origin": el repo no está conectado. En Railway, en Settings del servicio, mira de qué repo se despliega (GitHub/GitLab) y asegúrate de que tu carpeta local sea ese mismo repo (git remote -v).
+
+- "Permission denied" o "Authentication failed": necesitas autenticarte con GitHub (token o SSH). En GitHub: Settings > Developer settings > Personal access tokens.
+
+- "Nothing to commit": entonces git add no encontró cambios. Asegúrate de haber ejecutado antes: npm run build (en la raíz del proyecto).
+
+========================================

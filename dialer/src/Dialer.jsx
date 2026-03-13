@@ -18,6 +18,8 @@ export default function Dialer({ user, token, onLogout }) {
   const [products, setProducts] = useState([]);
   const [rates, setRates] = useState([]);
   const [ratesQ, setRatesQ] = useState('');
+  const [callsPagination, setCallsPagination] = useState({ total: 0, limit: 50, page: 1 });
+  const [ratesPagination, setRatesPagination] = useState({ total: 0, limit: 100, page: 1 });
   const [balance, setBalance] = useState(0);
   const [paymentProgress, setPaymentProgress] = useState(0);
   const [lastLoyaltyBonusAt, setLastLoyaltyBonusAt] = useState(null);
@@ -71,19 +73,22 @@ export default function Dialer({ user, token, onLogout }) {
   const [profileSaving, setProfileSaving] = useState(false);
   const [oxaPayRedirecting, setOxaPayRedirecting] = useState(false);
 
-  const loadCalls = () => {
-    fetch(`${API}/calls`, { headers: { Authorization: `Bearer ${token}` } })
+  const loadCalls = (page = 1, limit = 200) => {
+    fetch(`${API}/calls?page=${page}&limit=${limit}`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then((data) => {
         if (!data.ok) return;
         const list = data.calls || [];
         setCalls(list);
+        const pag = data.pagination || {};
+        setCallsPagination({ total: pag.total ?? list.length, limit: pag.limit ?? limit, page: pag.page ?? page });
         const startOfDay = new Date();
         startOfDay.setHours(0, 0, 0, 0);
         const today = list.filter((c) => new Date(c.created_at) >= startOfDay).length;
+        const totalFromPag = pag.total ?? list.length;
         const pending = list.filter((c) => (c.status || '').toLowerCase().includes('nueva')).length;
         const notesCount = list.filter((c) => (c.notes || '').trim().length > 0).length;
-        setKpis({ today, total: list.length, pending, notes: notesCount });
+        setKpis({ today, total: totalFromPag, pending, notes: notesCount });
       })
       .catch(() => setCalls([]));
   };
@@ -144,10 +149,17 @@ export default function Dialer({ user, token, onLogout }) {
     if (data.ok) setProducts(data.products || []);
   };
 
-  const loadRates = async (q = '') => {
-    const qs = q ? `?q=${encodeURIComponent(q)}` : '';
-    const data = await apiGet(`/rates${qs}`).catch(() => ({ ok: false }));
-    if (data.ok) setRates(data.rates || []);
+  const loadRates = async (q = '', page = 1, limit = 200) => {
+    const params = new URLSearchParams();
+    if (q) params.set('q', q);
+    params.set('page', String(page));
+    params.set('limit', String(limit));
+    const data = await apiGet(`/rates?${params}`).catch(() => ({ ok: false }));
+    if (data.ok) {
+      setRates(data.rates || []);
+      const pag = data.pagination || {};
+      setRatesPagination({ total: pag.total ?? (data.rates || []).length, limit: pag.limit ?? limit, page: pag.page ?? page });
+    }
   };
 
   const loadBilling = async () => {
@@ -972,6 +984,29 @@ export default function Dialer({ user, token, onLogout }) {
             <p style={{ color: 'rgba(229,231,235,0.5)', fontSize: 11, marginTop: 12 }}>
               {calls.length} registro(s). Duration y Credit used se rellenarán cuando se integre con telefonía.
             </p>
+            {callsPagination.total > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8, flexWrap: 'wrap' }}>
+                <span style={{ color: 'rgba(229,231,235,0.7)', fontSize: 12 }}>
+                  Mostrando {(callsPagination.page - 1) * callsPagination.limit + 1}-{Math.min(callsPagination.page * callsPagination.limit, callsPagination.total)} de {callsPagination.total}
+                </span>
+                <button
+                  type="button"
+                  className="cs-link-btn"
+                  disabled={callsPagination.page <= 1}
+                  onClick={() => loadCalls(callsPagination.page - 1, callsPagination.limit)}
+                >
+                  Anterior
+                </button>
+                <button
+                  type="button"
+                  className="cs-link-btn"
+                  disabled={callsPagination.page * callsPagination.limit >= callsPagination.total}
+                  onClick={() => loadCalls(callsPagination.page + 1, callsPagination.limit)}
+                >
+                  Siguiente
+                </button>
+              </div>
+            )}
           </section>
         )}
 
@@ -1031,7 +1066,7 @@ export default function Dialer({ user, token, onLogout }) {
               <tbody>
                 {rates.length === 0 ? (
                   <tr><td colSpan="3" className="cs-muted">No hay rates todavía.</td></tr>
-                ) : rates.slice(0, 300).map((r) => (
+                ) : rates.map((r) => (
                   <tr key={r.id}>
                     <td>{r.prefix}</td>
                     <td><strong>{r.destination}</strong></td>
@@ -1040,6 +1075,29 @@ export default function Dialer({ user, token, onLogout }) {
                 ))}
               </tbody>
             </table>
+            {ratesPagination.total > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8, flexWrap: 'wrap' }}>
+                <span style={{ color: 'rgba(229,231,235,0.7)', fontSize: 12 }}>
+                  Mostrando {(ratesPagination.page - 1) * ratesPagination.limit + 1}-{Math.min(ratesPagination.page * ratesPagination.limit, ratesPagination.total)} de {ratesPagination.total}
+                </span>
+                <button
+                  type="button"
+                  className="cs-link-btn"
+                  disabled={ratesPagination.page <= 1}
+                  onClick={() => loadRates(ratesQ, ratesPagination.page - 1, ratesPagination.limit)}
+                >
+                  Anterior
+                </button>
+                <button
+                  type="button"
+                  className="cs-link-btn"
+                  disabled={ratesPagination.page * ratesPagination.limit >= ratesPagination.total}
+                  onClick={() => loadRates(ratesQ, ratesPagination.page + 1, ratesPagination.limit)}
+                >
+                  Siguiente
+                </button>
+              </div>
+            )}
           </section>
         )}
 

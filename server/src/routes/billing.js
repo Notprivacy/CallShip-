@@ -2,8 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const jwt = require('jsonwebtoken');
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cambiar-en-produccion';
+const { JWT_SECRET, safeError } = require('../config');
 
 function authMiddleware(req, res, next) {
   const header = req.headers.authorization;
@@ -35,7 +34,7 @@ router.get('/oxapay/server-ip', async (req, res) => {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ ok: false, message: err.message, hint: 'Comprueba que el servidor tenga salida a internet.' });
+    res.status(500).json({ ok: false, message: safeError(err), hint: 'Comprueba que el servidor tenga salida a internet.' });
   }
 });
 
@@ -76,6 +75,7 @@ router.post('/oxapay/invoice', async (req, res) => {
         'merchant_api_key': apiKey,
       },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(15000),
     });
 
     const json = await resp.json().catch(() => null);
@@ -104,7 +104,7 @@ router.post('/oxapay/invoice', async (req, res) => {
     ).catch((err) => console.error('[OxaPay invoice] insert', err.message));
   } catch (err) {
     console.error(err);
-    res.status(500).json({ ok: false, message: err.message });
+    res.status(500).json({ ok: false, message: safeError(err) });
   }
 });
 
@@ -126,7 +126,7 @@ router.get('/balance', async (req, res) => {
     // Progreso hacia el próximo 100: 0..100. Tras acreditar el bono, vuelve a 0/100 y se repite el ciclo.
     const paymentProgress = Number((totalReloaded % 100).toFixed(2));
     res.json({
-      ok: true,
+      ok:  ,
       balance_usd: balance,
       payment_progress: paymentProgress,
       payment_target: 100,
@@ -252,7 +252,7 @@ router.post('/manual-deposit', async (req, res) => {
     res.status(201).json({ ok: true, deposit: r.rows[0], message: 'Registrado. Rastrearemos la transacción en la red; cuando se confirme se acreditará el monto automáticamente.' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ ok: false, message: err.message });
+    res.status(500).json({ ok: false, message: safeError(err) });
   }
 });
 

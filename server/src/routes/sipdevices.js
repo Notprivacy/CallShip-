@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const jwt = require('jsonwebtoken');
+const { JWT_SECRET, safeError } = require('../config');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'cambiar-en-produccion';
+const MASKED_PASSWORD = '••••••••';
 
 function authMiddleware(req, res, next) {
   const header = req.headers.authorization;
@@ -21,16 +22,24 @@ function authMiddleware(req, res, next) {
 
 router.use(authMiddleware);
 
+/** No exponer contraseña SIP al cliente; devolver enmascarada */
+function maskDevice(device) {
+  if (!device) return device;
+  const { sip_password, ...rest } = device;
+  return { ...rest, sip_password: sip_password ? MASKED_PASSWORD : null };
+}
+
 router.get('/', async (req, res) => {
   try {
     const r = await db.pool.query(
       'SELECT id, name, sip_username, sip_server, sip_password, caller_name, caller_number, voicemail, status, created_at, modified_at FROM sip_devices WHERE user_id = $1 ORDER BY created_at DESC',
       [req.user.userId]
     );
-    res.json({ ok: true, devices: r.rows });
+    const devices = (r.rows || []).map(maskDevice);
+    res.json({ ok: true, devices });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ ok: false, error: err.message });
+    res.status(500).json({ ok: false, error: safeError(err) });
   }
 });
 
@@ -57,10 +66,10 @@ router.post('/', async (req, res) => {
         status == null ? 1 : (status ? 1 : 0),
       ]
     );
-    res.status(201).json({ ok: true, device: r.rows[0] });
+    res.status(201).json({ ok: true, device: maskDevice(r.rows[0]) });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ ok: false, error: err.message });
+    res.status(500).json({ ok: false, error: safeError(err) });
   }
 });
 
@@ -68,16 +77,18 @@ router.put('/:id', async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (!id) return res.status(400).json({ ok: false, error: 'ID inválido' });
   const { sip_username, sip_password, caller_name, caller_number, voicemail, status, sip_server } = req.body || {};
+  const newPassword = (sip_password && String(sip_password).trim() && String(sip_password).trim() !== MASKED_PASSWORD) ? String(sip_password).trim() : null;
   try {
-    const existing = await db.pool.query('SELECT id FROM sip_devices WHERE id = $1 AND user_id = $2', [id, req.user.userId]);
+    const existing = await db.pool.query('SELECT id, sip_password FROM sip_devices WHERE id = $1 AND user_id = $2', [id, req.user.userId]);
     if (existing.rows.length === 0) return res.status(404).json({ ok: false, error: 'Dispositivo no encontrado' });
+    const passwordToSet = newPassword !== null ? newPassword : existing.rows[0].sip_password;
 
     const r = await db.pool.query(
       `UPDATE sip_devices
        SET name = COALESCE($1, name),
            sip_username = COALESCE($2, sip_username),
            sip_server = COALESCE($3, sip_server),
-           sip_password = COALESCE($4, sip_password),
+           sip_password = $4,
            caller_name = COALESCE($5, caller_name),
            caller_number = COALESCE($6, caller_number),
            voicemail = COALESCE($7, voicemail),
@@ -89,7 +100,7 @@ router.put('/:id', async (req, res) => {
         sip_username ? String(sip_username).trim() : null,
         sip_username ? String(sip_username).trim() : null,
         sip_server ?? null,
-        sip_password ?? null,
+        passwordToSet,
         caller_name ?? null,
         caller_number ?? null,
         voicemail == null ? null : (voicemail ? 1 : 0),
@@ -98,10 +109,10 @@ router.put('/:id', async (req, res) => {
         req.user.userId,
       ]
     );
-    res.json({ ok: true, device: r.rows[0] });
+    res.json({ ok: true, device: maskDevice(r.rows[0]) });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ ok: false, error: err.message });
+    res.status(500).json({ ok: false, error: safeError(err) });
   }
 });
 
@@ -114,7 +125,7 @@ router.delete('/:id', async (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ ok: false, error: err.message });
+    res.status(500).json({ ok: false, error: safeError(err) });
   }
 });
 

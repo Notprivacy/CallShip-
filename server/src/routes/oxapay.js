@@ -2,12 +2,22 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { applyReloadWithLoyalty } = require('../loyalty');
+const { safeError } = require('../config');
+
+const WEBHOOK_SECRET = (process.env.OXAPAY_WEBHOOK_SECRET || '').trim();
 
 /**
  * Callback/webhook de OxaPay.
- * OxaPay enviará aquí el estado del pago. Validación de firma no implementada (MVP).
+ * Si OXAPAY_WEBHOOK_SECRET está definido, se exige header X-Webhook-Secret o body.webhook_secret igual.
  */
 router.post('/callback', async (req, res) => {
+  if (WEBHOOK_SECRET) {
+    const secret = req.headers['x-webhook-secret'] || req.body?.webhook_secret || '';
+    if (String(secret).trim() !== WEBHOOK_SECRET) {
+      return res.status(403).json({ ok: false, message: 'Webhook no autorizado' });
+    }
+  }
+
   const body = req.body || {};
 
   // Campos esperados comunes (pueden variar según el gateway)
@@ -56,7 +66,7 @@ router.post('/callback', async (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ ok: false, message: err.message });
+    res.status(500).json({ ok: false, message: safeError(err) });
   }
 });
 

@@ -5,9 +5,11 @@ import { API } from './api';
 export default function Login({ onLogin }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isRegister, setIsRegister] = useState(false);
+  const [isForgot, setIsForgot] = useState(false);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -15,6 +17,32 @@ export default function Login({ onLogin }) {
     setSuccess('');
     const userTrim = String(username).trim();
     const passTrim = String(password).trim();
+
+    if (isForgot) {
+      const emailTrim = String(email).trim();
+      if (!emailTrim) {
+        setError('Indica tu correo electrónico');
+        return;
+      }
+      try {
+        const res = await fetch(`${API}/auth/forgot-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: emailTrim }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setError(data.message || 'Error al solicitar recuperación');
+          return;
+        }
+        setSuccess(data.message || 'Revisa tu correo para restablecer tu contraseña.');
+        return;
+      } catch {
+        setError('No se pudo conectar al servidor.');
+        return;
+      }
+    }
+
     const url = isRegister ? `${API}/auth/register` : `${API}/auth/login`;
     const body = { username: userTrim, password: passTrim };
     try {
@@ -51,7 +79,7 @@ export default function Login({ onLogin }) {
   };
 
   return (
-    <div className={`cs-login ${isRegister ? 'cs-is-register' : ''}`}>
+    <div className={`cs-login ${isRegister ? 'cs-is-register' : ''} ${isForgot ? 'cs-is-forgot' : ''}`}>
       <CanvasBillsBackground count={85} opacity={0.78} />
       <div className="cs-login-card cs-login-hero">
         <div className="cs-login-badge" />
@@ -62,61 +90,97 @@ export default function Login({ onLogin }) {
             <div className="title cs-login-title">
               <span className="cs-brand-azul">Call</span><span className="cs-brand-blanco">S</span><span className="cs-brand-rojo">hip</span>
             </div>
-            <div className="subtitle">{isRegister ? 'Crear cuenta' : 'Acceso al panel'}</div>
+            <div className="subtitle">
+              {isForgot ? 'Recuperar contraseña' : isRegister ? 'Crear cuenta' : 'Acceso al panel'}
+            </div>
           </div>
 
           <div className="cs-login-hero-inner">
             <div className="cs-login-panel">
               <form onSubmit={submit}>
-                <div className="cs-login-field" style={{ marginBottom: 10 }}>
+                <div className="cs-login-field" style={{ marginBottom: isForgot ? 16 : 10 }}>
                   <svg viewBox="0 0 24 24" fill="none">
-                    <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" stroke="currentColor" strokeWidth="2" />
-                    <path d="M4 20c1.6-3.4 5-5 8-5s6.4 1.6 8 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    {isForgot ? (
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="currentColor" strokeWidth="2" />
+                    ) : (
+                      <>
+                        <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" stroke="currentColor" strokeWidth="2" />
+                        <path d="M4 20c1.6-3.4 5-5 8-5s6.4 1.6 8 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                      </>
+                    )}
                   </svg>
                   <input
-                    type="text"
-                    placeholder="Usuario"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required
+                    type={isForgot ? 'email' : 'text'}
+                    placeholder={isForgot ? 'Correo electrónico' : 'Usuario'}
+                    value={isForgot ? email : username}
+                    onChange={(e) => isForgot ? setEmail(e.target.value) : setUsername(e.target.value)}
+                    required={!isForgot}
+                    autoComplete={isForgot ? 'email' : 'username'}
                   />
                 </div>
 
-                <div className="cs-login-field" style={{ marginBottom: 6 }}>
-                  <svg viewBox="0 0 24 24" fill="none">
-                    <path d="M7 11V8a5 5 0 0 1 10 0v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                    <path d="M6 11h12v9H6z" stroke="currentColor" strokeWidth="2" />
-                  </svg>
-                  <input
-                    type="password"
-                    placeholder="Contraseña"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                </div>
+                {!isForgot && (
+                  <div className="cs-login-field" style={{ marginBottom: 6 }}>
+                    <svg viewBox="0 0 24 24" fill="none">
+                      <path d="M7 11V8a5 5 0 0 1 10 0v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                      <path d="M6 11h12v9H6z" stroke="currentColor" strokeWidth="2" />
+                    </svg>
+                    <input
+                      type="password"
+                      placeholder="Contraseña"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                )}
 
                 {success && <p className="cs-msg-ok">{success}</p>}
                 {error && <p className="cs-msg-err">{error}</p>}
 
                 <div className="cs-login-cta">
                   <button type="submit" className="cs-btn cs-btn-primary">
-                    {isRegister ? 'Registrarse' : 'Entrar'}
+                    {isForgot ? 'Enviar solicitud' : isRegister ? 'Registrarse' : 'Entrar'}
                   </button>
                 </div>
+                {!isForgot && (
+                  <p style={{ marginTop: 12, marginBottom: 0, textAlign: 'center' }}>
+                    <button
+                      type="button"
+                      className="cs-link"
+                      onClick={() => { setIsForgot(true); setError(''); setSuccess(''); }}
+                      style={{ fontSize: 13 }}
+                    >
+                      ¿Olvidaste tu contraseña?
+                    </button>
+                  </p>
+                )}
               </form>
 
               <div className="cs-login-actions" style={{ marginTop: 8 }}>
-                <button
-                  type="button"
-                  className="cs-link"
-                  onClick={() => { setIsRegister(!isRegister); setError(''); setSuccess(''); }}
-                >
-                  {isRegister ? 'Ya tengo cuenta' : 'Crear cuenta'}
-                </button>
-                <span style={{ color: 'rgba(229,231,235,0.55)', fontSize: 12 }}>
-                  {isRegister ? 'Crea tu acceso en segundos' : 'Accede a tu panel'}
-                </span>
+                {!isForgot && (
+                  <button
+                    type="button"
+                    className="cs-link"
+                    onClick={() => { setIsRegister(!isRegister); setError(''); setSuccess(''); }}
+                  >
+                    {isRegister ? 'Ya tengo cuenta' : 'Crear cuenta'}
+                  </button>
+                )}
+                {isForgot && (
+                  <button
+                    type="button"
+                    className="cs-link"
+                    onClick={() => { setIsForgot(false); setError(''); setSuccess(''); }}
+                  >
+                    Volver al login
+                  </button>
+                )}
+                {!isForgot && (
+                  <span style={{ color: 'rgba(229,231,235,0.55)', fontSize: 12 }}>
+                    {isRegister ? 'Crea tu acceso en segundos' : 'Accede a tu panel'}
+                  </span>
+                )}
               </div>
             </div>
 

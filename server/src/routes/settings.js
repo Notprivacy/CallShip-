@@ -1,8 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cambiar-en-produccion';
+const { JWT_SECRET } = require('../config');
 
 function authMiddleware(req, res, next) {
   const header = req.headers.authorization;

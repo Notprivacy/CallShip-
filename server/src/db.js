@@ -160,6 +160,14 @@ async function initSqlite() {
       created_at TEXT DEFAULT (datetime('now')),
       confirmed_at TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token TEXT UNIQUE NOT NULL,
+      expires_at TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
   `);
 
   sqliteDb = sqlDb;
@@ -179,6 +187,7 @@ async function initSqlite() {
   try { sqliteDb.exec(`ALTER TABLE sip_devices ADD COLUMN status INTEGER DEFAULT 1`); } catch {}
   try { sqliteDb.exec(`ALTER TABLE sip_devices ADD COLUMN modified_at TEXT`); } catch {}
   try { sqliteDb.exec(`CREATE TABLE IF NOT EXISTS pending_manual_deposits (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES users(id), amount_usd REAL NOT NULL, currency TEXT NOT NULL, network TEXT, tx_hash TEXT, status TEXT DEFAULT 'pending', created_at TEXT DEFAULT (datetime('now')), confirmed_at TEXT)`); } catch {}
+  try { sqliteDb.exec(`CREATE TABLE IF NOT EXISTS password_reset_tokens (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES users(id), token TEXT UNIQUE NOT NULL, expires_at TEXT NOT NULL, created_at TEXT DEFAULT (datetime('now')))`); } catch {}
 
   // API tipo \"pg\" para que el resto del código no cambie
   pool = {
@@ -420,6 +429,16 @@ async function initPg() {
       status VARCHAR(30) DEFAULT 'pending',
       created_at TIMESTAMP DEFAULT NOW(),
       confirmed_at TIMESTAMP
+    );
+  `);
+
+  await p.query(`
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token VARCHAR(128) UNIQUE NOT NULL,
+      expires_at TIMESTAMP NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
     );
   `);
 

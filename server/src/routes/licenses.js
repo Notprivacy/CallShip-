@@ -3,8 +3,7 @@ const router = express.Router();
 const db = require('../db');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-
-const JWT_SECRET = process.env.JWT_SECRET || 'cambiar-en-produccion';
+const { JWT_SECRET, safeError } = require('../config');
 
 function authMiddleware(req, res, next) {
   const header = req.headers.authorization;
@@ -45,7 +44,7 @@ router.get('/check', async (req, res) => {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ valid: false, reason: err.message });
+    res.status(500).json({ valid: false, reason: safeError(err) });
   }
 });
 
@@ -58,7 +57,7 @@ router.get('/', async (req, res) => {
     res.json(r.rows);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: err.message, ok: false });
+    res.status(500).json({ error: safeError(err), ok: false });
   }
 });
 
@@ -74,7 +73,7 @@ router.post('/', async (req, res) => {
     res.status(201).json({ key, plan: plan || 'basic', expires_at: expires_at || null });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: err.message, ok: false });
+    res.status(500).json({ error: safeError(err), ok: false });
   }
 });
 

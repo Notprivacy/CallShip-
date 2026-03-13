@@ -1,0 +1,62 @@
+========================================
+  CHECKLIST – PROTEGER TU DIALER EN RAILWAY
+========================================
+
+Todo el código de seguridad ya está en tu proyecto. Solo tienes que configurar
+estas variables en Railway para activarlo.
+
+----------------------------------------
+PASO 1: Ir a Railway
+----------------------------------------
+
+  Railway → tu proyecto CallShip → pestaña "Variables"
+
+----------------------------------------
+PASO 2: Añadir o revisar estas variables
+----------------------------------------
+
+  VARIABLE          |  VALOR
+  ------------------+------------------------------------------
+  NODE_ENV          |  production
+  ------------------+------------------------------------------
+  JWT_SECRET        |  (una cadena larga y aleatoria, 32+ caracteres)
+  ------------------+------------------------------------------
+  ALLOWED_ORIGIN    |  https://www.callship.us
+                     (o si también usas sin www: https://www.callship.us,https://callship.us)
+  ------------------+------------------------------------------
+  ADMIN_USERS       |  medinax6
+                     (solo los usuarios admin, separados por coma)
+
+----------------------------------------
+PASO 3: Guardar
+----------------------------------------
+
+  Pulsa "Add" o "Update" por variable y guarda.
+  Railway redesplegará solo.
+
+----------------------------------------
+PASO 4: Comprobar
+----------------------------------------
+
+  1. Espera 1–2 minutos a que termine el deploy.
+  2. Entra en https://www.callship.us
+  3. Haz login con tu usuario.
+  4. Si todo va bien, la protección está activa.
+
+  Si con ALLOWED_ORIGIN la web no carga o da error de CORS:
+  - Entra siempre con la misma URL que pusiste (con o sin www).
+  - O en ALLOWED_ORIGIN pon las dos: https://www.callship.us,https://callship.us
+
+========================================
+QUÉ PROTEGE CADA COSA
+========================================
+
+  NODE_ENV=production  → Rate limits más estrictos (100 req/min, 6 intentos login).
+  JWT_SECRET           → Nadie puede falsificar tokens de sesión.
+  ALLOWED_ORIGIN       → Solo tu web puede llamar a la API desde el navegador.
+  ADMIN_USERS          → Solo esos usuarios pueden entrar a rutas de admin.
+
+  (En el código ya tienes: rate limit, helmet, límites de inputs, logout ante 401,
+   trust proxy, etc. No hace falta tocar nada más.)
+
+========================================

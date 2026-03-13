@@ -1,11 +1,18 @@
 LOS CAMBIOS NO SE VEN EN WWW.CALLSHIP.US HASTA QUE SUBAS server/public A GIT.
 
-Ejecuta estos comandos EN LA RAÍZ del proyecto (donde está PREPARAR-DEPLOY.bat):
+Railway tiene Root Directory = "server" y el build del server es "echo No build step".
+Por tanto el frontend que ve la web es SOLO lo que está en server/public en Git.
 
-  git add server/public server/src
-  git status
-  git commit -m "Deploy frontend: Clientes solo admin, hover KPIs"
-  git push
+PASOS cada vez que cambies el frontend (dialer) o quieras que se vea en producción:
+
+  1. En la raíz del proyecto:
+     npm run build
+
+  2. Subir el build y los archivos tocados:
+     git add server/public dialer/src server/src
+     git status
+     git commit -m "Deploy: Pendientes en menú, build actualizado"
+     git push
 
 IMPORTANTE: En "git status" DEBE aparecer server/public. Si no aparece, los cambios no se verán en la web.
 
