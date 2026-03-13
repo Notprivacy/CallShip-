@@ -531,7 +531,9 @@ export default function Dialer({ user, token, onLogout }) {
       <div className="cs-shell">
       <aside className="cs-sidebar">
         <div className="cs-brand">
-          <div className="cs-logo" />
+          <div className="cs-logo">
+            <img src="/logo.png" alt="CallShip" className="cs-logo-img" />
+          </div>
           <div>
             <h1>CallShip</h1>
             <p>Panel de llamadas</p>
