@@ -126,7 +126,7 @@ router.get('/balance', async (req, res) => {
     // Progreso hacia el próximo 100: 0..100. Tras acreditar el bono, vuelve a 0/100 y se repite el ciclo.
     const paymentProgress = Number((totalReloaded % 100).toFixed(2));
     res.json({
-      ok:  ,
+      ok: true,
       balance_usd: balance,
       payment_progress: paymentProgress,
       payment_target: 100,
