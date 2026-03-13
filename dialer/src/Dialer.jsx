@@ -1476,7 +1476,7 @@ export default function Dialer({ user, token, onLogout }) {
                   { key: 'fax_number', label: 'Fax Number', required: false },
                 ].map(({ key, label, required, type, options }) => (
                   <div key={key} className="cs-profile-row">
-                    <label style={{ flex: '0 0 180px', color: 'rgba(229,231,235,0.85)', fontSize: 13 }}>{label}</label>
+                    <label className="cs-profile-label" style={{ flex: '0 0 180px' }}>{label}</label>
                     {type === 'select' ? (
                       <select
                         className="cs-field"
@@ -1503,7 +1503,7 @@ export default function Dialer({ user, token, onLogout }) {
                 <div style={{ display: 'flex', gap: 12, marginTop: 24, justifyContent: 'flex-start' }}>
                   <button
                     type="button"
-                    className="cs-btn cs-btn-primary"
+                    className="cs-btn cs-btn-primary cs-btn-red"
                     disabled={profileSaving}
                     onClick={async () => {
                       setProfileSaving(true);
