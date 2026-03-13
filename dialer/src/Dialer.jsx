@@ -591,33 +591,12 @@ export default function Dialer({ user, token, onLogout }) {
 
       <main className="cs-main">
         <div className="cs-topbar">
-          <div style={active === 'settings' ? { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 } : undefined}>
-            {active === 'settings' ? (
-              <div className="cs-only-chase-money-topbar" style={{ width: '100%', textAlign: 'center', fontSize: 22, fontWeight: 800, color: '#facc15', letterSpacing: '0.04em', textShadow: '0 0 20px rgba(250,204,21,0.4)' }}>
-                ❗️ONLY CHASE MONEY❗️
-              </div>
-            ) : (
-              <>
-                <h2>{active === 'account-profile' ? 'My Profile' : active === 'account-sipdevices' ? 'SIP Devices' : active === 'account-changepassword' ? 'Change Password' : active === 'cdr' ? 'Registro CDR' : active === 'calls' ? 'Llamadas' : active === 'billing' ? 'Billing' : active === 'rates' ? 'Rates' : active === 'reports' ? 'Reportes' : active === 'products' ? 'Productos' : active === 'transactions' ? 'Pendientes / Transacciones' : active === 'admin-customers' ? 'Clientes (Admin)' : 'Dashboard'}</h2>
-                <div style={{ marginTop: 4, color: 'rgba(229,231,235,0.55)', fontSize: 12 }}>
-                  {active === 'account-profile'
-                    ? 'Tu perfil y datos de cuenta'
-                    : active === 'account-sipdevices'
-                    ? 'Dispositivos SIP para llamadas'
-                    : active === 'account-changepassword'
-                    ? 'Cambiar tu contraseña'
-                    : active === 'cdr'
-                    ? 'Registro de llamadas con fecha, hora, duración y disposición'
-                    : active === 'admin-customers'
-                    ? 'Gestión de clientes: saldo, estado y datos de contacto'
-                    : active === 'transactions'
-                    ? 'Todas tus transacciones: pagos, depósitos manuales e invoices OxaPay con fecha, hora y estado'
-                    : 'Resumen rápido y registro de actividad'}
-                </div>
-              </>
-            )}
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
+            <div className="cs-only-chase-money-topbar" style={{ width: '100%', textAlign: 'center', fontSize: 22, fontWeight: 800, color: '#ff3333', letterSpacing: '0.04em', textShadow: '0 0 20px rgba(255,51,51,0.6), 0 0 40px rgba(255,51,51,0.3)' }}>
+              ❗️ONLY CHASE MONEY❗️
+            </div>
           </div>
-          <div className="cs-user" style={{ display: 'flex', alignItems: 'center', gap: 12, position: 'relative' }}>
+          <div className="cs-user" style={{ display: 'flex', alignItems: 'center', gap: 12, position: 'relative', flexShrink: 0 }}>
             <button
               type="button"
               className="cs-btn"
@@ -1250,14 +1229,6 @@ export default function Dialer({ user, token, onLogout }) {
               </tbody>
             </table>
           </section>
-        )}
-
-        {active === 'settings' && (
-          <div className="cs-only-chase-money-block" style={{ marginTop: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 320, padding: 40, background: 'linear-gradient(135deg, rgba(250,204,21,0.12) 0%, rgba(0,0,0,0.3) 100%)', borderRadius: 20, border: '2px solid rgba(250,204,21,0.35)' }}>
-            <div style={{ fontSize: 'clamp(28px, 5vw, 48px)', fontWeight: 900, color: '#facc15', textAlign: 'center', letterSpacing: '0.04em', textShadow: '0 0 30px rgba(250,204,21,0.5), 0 4px 20px rgba(0,0,0,0.4)' }}>
-              ❗️ONLY CHASE MONEY❗️
-            </div>
-          </div>
         )}
 
         {active === 'admin-customers' && (
