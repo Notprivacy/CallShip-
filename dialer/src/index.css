@@ -45,7 +45,21 @@ body::before{
   z-index: -1;
 }
 
-/* Lluvia de “billetes 100” (estilizados) */
+/* En móvil: fondo estático (sin canvas) para evitar bajos FPS en login */
+.cs-bills-canvas-static{
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: -2;
+  background: radial-gradient(1100px 680px at 12% 18%, rgba(239,68,68,0.22), transparent 58%),
+              radial-gradient(900px 520px at 82% 26%, rgba(248,113,113,0.14), transparent 52%),
+              radial-gradient(900px 520px at 45% 92%, rgba(185,28,28,0.14), transparent 56%),
+              #07070c;
+}
+
+/* Lluvia de “billetes 100” (estilizados) – solo escritorio */
 .cs-bills-canvas{
   position: fixed;
   inset: 0;
@@ -638,6 +652,19 @@ button, input { font: inherit; }
   box-shadow: 0 28px 70px rgba(0,0,0,0.68), 0 16px 40px rgba(239,68,68,0.18);
   overflow: hidden;
   z-index: 3; /* por encima de overlays */
+}
+@media (max-width: 768px) {
+  .cs-login{ padding: 16px 12px; min-height: 100dvh; }
+  .cs-login-badge{
+    width: 120px;
+    height: 120px;
+    top: -36px;
+    border-width: 4px;
+  }
+  .cs-login-hero-top{ padding-top: 72px !important; }
+  .cs-login-hero-top .title{ font-size: 28px !important; }
+  .cs-login-hero-inner{ padding: 14px 16px 18px !important; }
+  .cs-login-panel{ padding: 14px !important; }
 }
 .cs-login-badge::after{
   content:"";

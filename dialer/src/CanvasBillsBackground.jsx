@@ -1,4 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+
+const MOBILE_MAX_WIDTH = 768;
 
 function rand(min, max) {
   return Math.random() * (max - min) + min;
@@ -22,9 +24,22 @@ function noise1(t, seed) {
 }
 
 export default function CanvasBillsBackground({ count = 36, opacity = 0.55 }) {
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= MOBILE_MAX_WIDTH);
   const canvasRef = useRef(null);
   const rafRef = useRef(0);
   const stateRef = useRef(null);
+
+  useEffect(() => {
+    const mql = window.matchMedia(`(max-width: ${MOBILE_MAX_WIDTH}px)`);
+    const onMatch = (e) => setIsMobile(e.matches);
+    setIsMobile(mql.matches);
+    mql.addEventListener('change', onMatch);
+    return () => mql.removeEventListener('change', onMatch);
+  }, []);
+
+  if (isMobile) {
+    return <div className="cs-bills-canvas-static" aria-hidden="true" />;
+  }
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -178,4 +193,5 @@ export default function CanvasBillsBackground({ count = 36, opacity = 0.55 }) {
 
   return <canvas ref={canvasRef} className="cs-bills-canvas" aria-hidden="true" />;
 }
+
 
