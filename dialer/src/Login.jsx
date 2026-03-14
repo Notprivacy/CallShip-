@@ -122,8 +122,9 @@ export default function Login({ onLogin }) {
         return;
       }
       if (isRegister) {
-        if (data.backupCode) {
-          setBackupCodeToShow(data.backupCode);
+        const code = data.backupCode ?? data.backup_code;
+        if (code && typeof code === 'string') {
+          setBackupCodeToShow(code);
         } else {
           setIsRegister(false);
           setShowRegistrationSuccess(true);

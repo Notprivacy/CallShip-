@@ -57,8 +57,12 @@ router.post('/register', async (req, res) => {
     );
     const userId = result.rows[0].id;
     const backupCode = generateBackupCode();
-    const backupCodeHash = await bcrypt.hash(backupCode, 10);
-    await db.pool.query('UPDATE users SET backup_code_hash = $1 WHERE id = $2', [backupCodeHash, userId]);
+    try {
+      const backupCodeHash = await bcrypt.hash(backupCode, 10);
+      await db.pool.query('UPDATE users SET backup_code_hash = $1 WHERE id = $2', [backupCodeHash, userId]);
+    } catch (updateErr) {
+      console.error('No se pudo guardar backup_code_hash (¿columna backup_code_hash existe en users?):', updateErr.message);
+    }
     res.status(201).json({
       ok: true,
       user: result.rows[0],
