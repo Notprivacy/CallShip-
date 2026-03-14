@@ -410,6 +410,7 @@ export default function Dialer({ user, token, onLogout }) {
 
   useEffect(() => {
     loadProfile();
+    loadSipDevices();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -443,9 +444,44 @@ export default function Dialer({ user, token, onLogout }) {
     return (Date.now() - t) < 10 * 60 * 1000;
   }, [lastLoyaltyBonusAt]);
 
+  const toggleSipStatus = async (device, newStatus) => {
+    try {
+      setAccountMsg('');
+      if (newStatus && (sipDevices || []).length > 1) {
+        for (const d of sipDevices) {
+          if (d.id !== device.id && (d.status === 1 || d.status === '1')) {
+            await fetch(`${API}/sip-devices/${d.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ status: false }),
+            }).catch(() => null);
+          }
+        }
+      }
+      const res = await fetch(`${API}/sip-devices/${device.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setAccountMsg(data.error || 'Error al actualizar'); return; }
+      loadSipDevices();
+      setAccountMsg(newStatus ? 'Dispositivo activado. Solo este podrá hacer llamadas.' : 'Dispositivo desactivado.');
+    } catch {
+      setAccountMsg('Error de conexión.');
+    }
+  };
+
   const handleRegisterCall = async (e) => {
     e?.preventDefault();
     if (!customer.trim()) return;
+    if (sipDevices?.length > 0) {
+      const hasActive = sipDevices.some((d) => (d.status === 1 || d.status === '1'));
+      if (!hasActive) {
+        setStatus('Activa al menos un dispositivo SIP para hacer llamadas.');
+        return;
+      }
+    }
     setLoading(true);
     setStatus('');
     try {
@@ -1728,9 +1764,17 @@ export default function Dialer({ user, token, onLogout }) {
                         <td>{modified}</td>
                         <td style={{ textAlign: 'center' }}>{vm ? '✓' : '—'}</td>
                         <td style={{ textAlign: 'center' }}>
-                          <span style={{ display: 'inline-flex', width: 42, height: 22, borderRadius: 999, border: '1px solid rgba(255,255,255,0.14)', background: st ? 'rgba(167,139,250,0.35)' : 'rgba(255,255,255,0.06)', padding: 2, alignItems: 'center' }}>
-                            <span style={{ width: 18, height: 18, borderRadius: 999, background: st ? '#a78bfa' : 'rgba(255,255,255,0.35)', transform: `translateX(${st ? 18 : 0}px)`, transition: 'transform 160ms ease' }} />
-                          </span>
+                          <button
+                            type="button"
+                            className="cs-sip-status-toggle"
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => toggleSipStatus(d, !st)}
+                            title={st ? 'Desactivar (no podrá hacer llamadas)' : 'Activar (este será el único que podrá hacer llamadas)'}
+                          >
+                            <span style={{ display: 'inline-flex', width: 42, height: 22, borderRadius: 999, border: '1px solid rgba(206,17,38,0.4)', background: st ? 'rgba(206,17,38,0.35)' : 'rgba(255,255,255,0.06)', padding: 2, alignItems: 'center' }}>
+                              <span style={{ width: 18, height: 18, borderRadius: 999, background: st ? '#CE1126' : 'rgba(255,255,255,0.35)', transform: `translateX(${st ? 18 : 0}px)`, transition: 'transform 160ms ease' }} />
+                            </span>
+                          </button>
                         </td>
                       </tr>
                     );

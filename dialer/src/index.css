@@ -1037,6 +1037,15 @@ button, input { font: inherit; }
 }
 .cs-backup-copy{ margin-top: 0; }
 
+/* Toggle status SIP Devices - mismo rojo que Create */
+.cs-sip-status-toggle{
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+}
+
 /* Panel registro exitoso — grande y llamativo */
 .cs-registration-success-panel{
   display: flex;
