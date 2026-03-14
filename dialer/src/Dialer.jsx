@@ -1638,7 +1638,7 @@ export default function Dialer({ user, token, onLogout }) {
           <section className="cs-card" style={{ marginTop: 16 }}>
             <div className="cs-section-head">
               <h3 style={{ margin: 0 }}>My Account / SIP Devices</h3>
-              <span className="cs-ui-badge" title="Si ves este badge, la versión con toggle rojo está desplegada">UI v2</span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#CE1126', background: 'rgba(206,17,38,0.2)', border: '1px solid rgba(206,17,38,0.5)', padding: '2px 6px', borderRadius: 4 }} title="Versión con toggle rojo">UI v2</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', marginTop: 14, flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
@@ -1767,12 +1767,28 @@ export default function Dialer({ user, token, onLogout }) {
                         <td style={{ textAlign: 'center' }}>
                           <button
                             type="button"
-                            className={`cs-sip-status-toggle ${st ? 'cs-sip-status-on' : 'cs-sip-status-off'}`}
+                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
                             onClick={() => toggleSipStatus(d, !st)}
                             title={st ? 'Desactivar (no podrá hacer llamadas)' : 'Activar (este será el único que podrá hacer llamadas)'}
                           >
-                            <span className="cs-sip-status-track">
-                              <span className="cs-sip-status-thumb" />
+                            <span style={{
+                              display: 'inline-flex',
+                              width: 42,
+                              height: 22,
+                              borderRadius: 999,
+                              border: '1px solid rgba(206,17,38,0.5)',
+                              background: st ? 'rgba(206,17,38,0.35)' : 'rgba(255,255,255,0.06)',
+                              padding: 2,
+                              alignItems: 'center',
+                            }}>
+                              <span style={{
+                                width: 18,
+                                height: 18,
+                                borderRadius: 999,
+                                background: st ? '#CE1126' : 'rgba(255,255,255,0.35)',
+                                transform: st ? 'translateX(18px)' : 'translateX(0)',
+                                transition: 'transform 0.16s ease, background 0.2s ease',
+                              }} />
                             </span>
                           </button>
                         </td>
