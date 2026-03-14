@@ -1,0 +1,9 @@
+# Nixpacks/Railpack: define solo comandos de build y start.
+# No declaramos "secrets" en build; SMTP/JWT solo se usan en runtime.
+# https://nixpacks.com/docs/configuration/file
+
+[phases.build]
+cmds = ["npm install", "npm run build"]
+
+[start]
+cmd = "npm start"
