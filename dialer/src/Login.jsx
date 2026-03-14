@@ -5,12 +5,18 @@ import { API } from './api';
 export default function Login({ onLogin }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isRegister, setIsRegister] = useState(false);
   const [isForgot, setIsForgot] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [backupCodeToShow, setBackupCodeToShow] = useState(null);
+  const [showRegistrationSuccess, setShowRegistrationSuccess] = useState(false);
+  const [backupCodeInput, setBackupCodeInput] = useState('');
+  const [backupResetToken, setBackupResetToken] = useState('');
+  const [backupStep, setBackupStep] = useState('code');
+  const [newPassword, setNewPassword] = useState('');
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState('');
 
   const submit = async (e) => {
     e.preventDefault();
@@ -20,30 +26,68 @@ export default function Login({ onLogin }) {
     const passTrim = String(password).trim();
 
     if (isForgot) {
-      const emailTrim = String(email).trim();
-      if (!emailTrim) {
-        setError('Indica tu correo electrónico');
+      if (backupStep === 'password') {
+        const passTrim = String(newPassword).trim();
+        const passConfirm = String(newPasswordConfirm).trim();
+        if (passTrim.length < 6) {
+          setError('La contraseña debe tener al menos 6 caracteres.');
+          return;
+        }
+        if (passTrim !== passConfirm) {
+          setError('Las contraseñas no coinciden.');
+          return;
+        }
+        setSubmitting(true);
+        try {
+          const res = await fetch(`${API}/auth/reset-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: backupResetToken, password: passTrim }),
+          });
+          const data = await res.json().catch(() => ({}));
+          setSubmitting(false);
+          if (!res.ok) {
+            setError(data.message || data.error || 'El enlace ha caducado o no es válido.');
+            return;
+          }
+          setBackupResetToken('');
+          setBackupStep('code');
+          setBackupCodeInput('');
+          setNewPassword('');
+          setNewPasswordConfirm('');
+          setIsForgot(false);
+          setError('');
+          setSuccess('Contraseña actualizada. Ya puedes entrar con tu nueva contraseña.');
+          return;
+        } catch {
+          setError('No se pudo conectar al servidor.');
+          setSubmitting(false);
+          return;
+        }
+      }
+      const userTrim = String(username).trim();
+      const codeTrim = String(backupCodeInput).trim().replace(/\s/g, '');
+      if (!userTrim || !codeTrim) {
+        setError('Indica tu usuario y el código de respaldo de 25 caracteres.');
         return;
       }
       setSubmitting(true);
       try {
-        const res = await fetch(`${API}/auth/forgot-password`, {
+        const res = await fetch(`${API}/auth/verify-backup-code`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: emailTrim }),
+          body: JSON.stringify({ username: userTrim, backupCode: codeTrim }),
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          if (res.status === 429) {
-            setError('Demasiados intentos. Espera unos 15 minutos antes de volver a intentar (login, crear cuenta o recuperar contraseña).');
-          } else {
-            setError(data.message || 'Error al solicitar recuperación');
-          }
-          setSubmitting(false);
+        setSubmitting(false);
+        if (!res.ok || !data.resetToken) {
+          setError(data.message || data.error || 'Código inválido o ya utilizado.');
           return;
         }
-        setSuccess(data.message || 'Revisa tu correo (y carpeta de spam) para restablecer tu contraseña.');
-        setSubmitting(false);
+        setBackupResetToken(data.resetToken);
+        setBackupStep('password');
+        setError('');
+        setSuccess('');
         return;
       } catch {
         setError('No se pudo conectar al servidor.');
@@ -78,8 +122,12 @@ export default function Login({ onLogin }) {
         return;
       }
       if (isRegister) {
-        setIsRegister(false);
-        setSuccess('Registro exitoso. Ahora puedes iniciar sesión.');
+        if (data.backupCode) {
+          setBackupCodeToShow(data.backupCode);
+        } else {
+          setIsRegister(false);
+          setShowRegistrationSuccess(true);
+        }
         setSubmitting(false);
         return;
       }
@@ -95,8 +143,27 @@ export default function Login({ onLogin }) {
     }
   };
 
+  const copyBackupCode = () => {
+    if (!backupCodeToShow) return;
+    navigator.clipboard.writeText(backupCodeToShow).then(() => {
+      setSuccess('Código copiado al portapapeles.');
+      setTimeout(() => setSuccess(''), 2500);
+    }).catch(() => setError('No se pudo copiar. Cópialo manualmente.'));
+  };
+
+  const dismissBackupCode = () => {
+    setBackupCodeToShow(null);
+    setIsRegister(false);
+    setShowRegistrationSuccess(true);
+  };
+
+  const showBackupPanel = !!backupCodeToShow;
+  const showRecoveryPasswordStep = isForgot && backupStep === 'password';
+  const showRecoveryCodeStep = isForgot && backupStep === 'code';
+  const showMainForm = !showBackupPanel && !isForgot && !showRegistrationSuccess;
+
   return (
-    <div className={`cs-login ${isRegister ? 'cs-is-register' : ''} ${isForgot ? 'cs-is-forgot' : ''}`}>
+    <div className={`cs-login ${isRegister ? 'cs-is-register' : ''} ${isForgot ? 'cs-is-forgot' : ''} ${showBackupPanel ? 'cs-backup-panel' : ''}`}>
       <CanvasBillsBackground count={85} opacity={0.78} />
       <div className="cs-login-card cs-login-hero">
         <div className="cs-login-badge" />
@@ -108,47 +175,107 @@ export default function Login({ onLogin }) {
               <span className="cs-brand-azul">Call</span><span className="cs-brand-blanco">S</span><span className="cs-brand-rojo">hip</span>
             </div>
             <div className="subtitle">
-              {isForgot ? 'Recuperar contraseña' : isRegister ? 'Crear cuenta' : 'Acceso al panel'}
+              {showBackupPanel ? 'Guarda tu código de respaldo' : showRegistrationSuccess ? '¡Bienvenido a CallShip!' : isForgot ? (backupStep === 'password' ? 'Nueva contraseña' : 'Recuperar contraseña') : isRegister ? 'Crear cuenta' : 'Acceso al panel'}
             </div>
           </div>
 
           <div className="cs-login-hero-inner">
             <div className="cs-login-panel">
-              <form onSubmit={submit}>
-                <div className="cs-login-field" style={{ marginBottom: isForgot ? 16 : 10 }}>
-                  <svg viewBox="0 0 24 24" fill="none">
-                    {isForgot ? (
-                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="currentColor" strokeWidth="2" />
-                    ) : (
-                      <>
-                        <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" stroke="currentColor" strokeWidth="2" />
-                        <path d="M4 20c1.6-3.4 5-5 8-5s6.4 1.6 8 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                      </>
-                    )}
-                  </svg>
-                  <input
-                    type={isForgot ? 'email' : 'text'}
-                    placeholder={isForgot ? 'Correo electrónico' : 'Usuario'}
-                    value={isForgot ? email : username}
-                    onChange={(e) => isForgot ? setEmail(e.target.value) : setUsername(e.target.value)}
-                    required={!isForgot}
-                    autoComplete={isForgot ? 'email' : 'username'}
-                  />
+              {showBackupPanel && (
+                <div className="cs-backup-code-panel">
+                  <div className="cs-backup-warning" role="alert">
+                    <span className="cs-backup-warning-icon" aria-hidden>⚠️</span>
+                    <strong>⚠️ ADVERTENCIA — LEE Y GUARDA ESTE CÓDIGO</strong>
+                    <p>Copia y guarda este código en un lugar seguro. Es de <strong>un solo uso</strong>. Si olvidas tu contraseña, podrás usarlo para recuperar el acceso.</p>
+                    <p className="cs-backup-warning-danger"><strong>Si pierdes u olvidas este código, podrías perder el acceso permanente a tu cuenta.</strong> No podremos recuperarlo por ti.</p>
+                  </div>
+                  <div className="cs-backup-code-box">
+                    <code className="cs-backup-code-text" aria-label="Código de respaldo de 25 caracteres">{backupCodeToShow}</code>
+                    <button type="button" className="cs-btn cs-btn-secondary cs-backup-copy" onClick={copyBackupCode}>
+                      Copiar código
+                    </button>
+                  </div>
+                  <button type="button" className="cs-btn cs-btn-primary" onClick={dismissBackupCode}>
+                    Entendido, ir al login
+                  </button>
                 </div>
+              )}
 
-                {!isForgot && (
-                  <div className="cs-login-field" style={{ marginBottom: 6 }}>
+              {showRegistrationSuccess && (
+                <div className="cs-registration-success-panel">
+                  <div className="cs-registration-success-icon" aria-hidden>✓</div>
+                  <h2 className="cs-registration-success-title">¡Registro exitoso!</h2>
+                  <p className="cs-registration-success-text">Tu cuenta ha sido creada correctamente. Ya puedes iniciar sesión con tu usuario y contraseña.</p>
+                  <button type="button" className="cs-btn cs-btn-primary cs-registration-success-btn" onClick={() => setShowRegistrationSuccess(false)}>
+                    Entrar
+                  </button>
+                </div>
+              )}
+
+              {!showBackupPanel && !showRegistrationSuccess && (
+              <form onSubmit={submit}>
+                {(showMainForm || showRecoveryCodeStep) && (
+                  <div className="cs-login-field" style={{ marginBottom: showRecoveryCodeStep ? 12 : 10 }}>
                     <svg viewBox="0 0 24 24" fill="none">
-                      <path d="M7 11V8a5 5 0 0 1 10 0v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                      <path d="M6 11h12v9H6z" stroke="currentColor" strokeWidth="2" />
+                      <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" stroke="currentColor" strokeWidth="2" />
+                      <path d="M4 20c1.6-3.4 5-5 8-5s6.4 1.6 8 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                     </svg>
                     <input
-                      type="password"
-                      placeholder="Contraseña"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
+                      type="text"
+                      placeholder={showRecoveryCodeStep ? 'Usuario' : 'Usuario'}
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      required={showMainForm || showRecoveryCodeStep}
+                      autoComplete="username"
                     />
+                  </div>
+                )}
+
+                {showRecoveryCodeStep && (
+                  <div className="cs-login-field" style={{ marginBottom: 12 }}>
+                    <svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                    <input
+                      type="text"
+                      placeholder="Código de respaldo (25 caracteres)"
+                      value={backupCodeInput}
+                      onChange={(e) => setBackupCodeInput(e.target.value)}
+                      maxLength={30}
+                      autoComplete="one-time-code"
+                    />
+                  </div>
+                )}
+
+                {showRecoveryPasswordStep && (
+                  <>
+                    <div className="cs-login-field" style={{ marginBottom: 10 }}>
+                      <svg viewBox="0 0 24 24" fill="none"><path d="M7 11V8a5 5 0 0 1 10 0v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><path d="M6 11h12v9H6z" stroke="currentColor" strokeWidth="2" /></svg>
+                      <input
+                        type="password"
+                        placeholder="Nueva contraseña (mín. 6 caracteres)"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        minLength={6}
+                        autoComplete="new-password"
+                      />
+                    </div>
+                    <div className="cs-login-field" style={{ marginBottom: 10 }}>
+                      <svg viewBox="0 0 24 24" fill="none"><path d="M7 11V8a5 5 0 0 1 10 0v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><path d="M6 11h12v9H6z" stroke="currentColor" strokeWidth="2" /></svg>
+                      <input
+                        type="password"
+                        placeholder="Confirmar nueva contraseña"
+                        value={newPasswordConfirm}
+                        onChange={(e) => setNewPasswordConfirm(e.target.value)}
+                        minLength={6}
+                        autoComplete="new-password"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {showMainForm && (
+                  <div className="cs-login-field" style={{ marginBottom: 6 }}>
+                    <svg viewBox="0 0 24 24" fill="none"><path d="M7 11V8a5 5 0 0 1 10 0v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><path d="M6 11h12v9H6z" stroke="currentColor" strokeWidth="2" /></svg>
+                    <input type="password" placeholder="Contraseña" value={password} onChange={(e) => setPassword(e.target.value)} required />
                   </div>
                 )}
 
@@ -157,43 +284,31 @@ export default function Login({ onLogin }) {
 
                 <div className="cs-login-cta">
                   <button type="submit" className="cs-btn cs-btn-primary" disabled={submitting}>
-                    {submitting ? (isForgot ? 'Enviando…' : 'Entrando…') : (isForgot ? 'Enviar solicitud' : isRegister ? 'Registrarse' : 'Entrar')}
+                    {submitting ? (isForgot ? 'Verificando…' : 'Entrando…') : backupStep === 'password' ? 'Cambiar contraseña' : isForgot ? 'Verificar código' : isRegister ? 'Registrarse' : 'Entrar'}
                   </button>
                 </div>
-                {!isForgot && (
+                {showMainForm && (
                   <p style={{ marginTop: 12, marginBottom: 0, textAlign: 'center' }}>
-                    <button
-                      type="button"
-                      className="cs-link"
-                      onClick={() => { setIsForgot(true); setError(''); setSuccess(''); }}
-                      style={{ fontSize: 13 }}
-                    >
+                    <button type="button" className="cs-link" onClick={() => { setIsForgot(true); setError(''); setSuccess(''); }} style={{ fontSize: 13 }}>
                       ¿Olvidaste tu contraseña?
                     </button>
                   </p>
                 )}
               </form>
+              )}
 
               <div className="cs-login-actions" style={{ marginTop: 8 }}>
-                {!isForgot && (
-                  <button
-                    type="button"
-                    className="cs-link"
-                    onClick={() => { setIsRegister(!isRegister); setError(''); setSuccess(''); }}
-                  >
+                {!showBackupPanel && !showRegistrationSuccess && !isForgot && (
+                  <button type="button" className="cs-link" onClick={() => { setIsRegister(!isRegister); setError(''); setSuccess(''); }}>
                     {isRegister ? 'Ya tengo cuenta' : 'Crear cuenta'}
                   </button>
                 )}
                 {isForgot && (
-                  <button
-                    type="button"
-                    className="cs-link"
-                    onClick={() => { setIsForgot(false); setError(''); setSuccess(''); }}
-                  >
+                  <button type="button" className="cs-link" onClick={() => { setIsForgot(false); setBackupStep('code'); setBackupResetToken(''); setBackupCodeInput(''); setNewPassword(''); setNewPasswordConfirm(''); setError(''); setSuccess(''); }}>
                     Volver al login
                   </button>
                 )}
-                {!isForgot && (
+                {!showBackupPanel && !showRegistrationSuccess && !isForgot && (
                   <span style={{ color: 'rgba(229,231,235,0.55)', fontSize: 12 }}>
                     {isRegister ? 'Crea tu acceso en segundos' : 'Accede a tu panel'}
                   </span>

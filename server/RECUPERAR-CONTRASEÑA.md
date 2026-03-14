@@ -14,19 +14,19 @@
 
 ---
 
-## Configurar el envío de correo (SMTP)
+## Configurar el envío de correo (Gmail por SMTP)
 
-Para que los correos se envíen de verdad, en **Railway → Variables** (o en tu `.env` local) define:
+El envío de “Recuperar contraseña” está configurado para **Gmail** por SMTP. En **Railway → Variables** (o en tu `.env` local) define:
 
-| Variable       | Descripción |
-|----------------|-------------|
-| `SMTP_HOST`    | Servidor SMTP (ej. `smtp.gmail.com`, `smtp.office365.com`) |
-| `SMTP_PORT`    | Puerto (ej. `587` para TLS) |
-| `SMTP_SECURE`  | `true` si usas puerto 465 |
-| `SMTP_USER`    | Usuario SMTP |
-| `SMTP_PASS`    | Contraseña o contraseña de aplicación |
-| `EMAIL_FROM`   | Dirección que aparece como remitente (opcional; si no, se usa `SMTP_USER`) |
-| `FRONTEND_URL` | URL base del front para el enlace (ej. `https://www.callship.us`) |
+| Variable       | Valor con Gmail |
+|----------------|------------------|
+| `SMTP_HOST`    | `smtp.gmail.com` |
+| `SMTP_PORT`    | `587` |
+| `SMTP_SECURE`  | `false` |
+| `SMTP_USER`    | Tu correo Gmail (ej. `callship@gmail.com`) |
+| `SMTP_PASS`    | Contraseña de aplicación de Gmail (no la contraseña normal; créala en https://myaccount.google.com/apppasswords) |
+| `EMAIL_FROM`   | El mismo Gmail (ej. `callship@gmail.com`) |
+| `FRONTEND_URL` | `https://www.callship.us` |
 
 Si **no** configuras SMTP, al solicitar recuperación con un correo válido la API responderá **503** indicando que no se pudo enviar el correo.
 

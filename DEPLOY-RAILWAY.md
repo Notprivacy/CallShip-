@@ -1,130 +1,92 @@
-# Desplegar CallShip en Railway (con todo lo nuevo)
+# Subir CallShip a Railway
 
-Incluye: recuperar contraseña por correo, paginación, seguridad (CSP, safeError, webhook OxaPay), etc.
+## 1. Crear proyecto en Railway
 
----
+1. Entra en [railway.app](https://railway.app) e inicia sesión.
+2. **New Project** → **Deploy from GitHub repo** (o **Empty Project** si subes por CLI).
+3. Si usas GitHub: conecta el repositorio y elige la rama (p. ej. `main`). Railway usará la **raíz del repo** (donde está `package.json` y `railway.toml`).
 
-## 1. Variables en Railway
+## 2. Base de datos PostgreSQL (recomendado)
 
-En **Railway** → tu proyecto → **Variables**, añade o revisa estas variables.
+1. En el proyecto Railway: **+ New** → **Database** → **PostgreSQL**.
+2. Railway crea el servicio y te asigna variables como `DATABASE_URL` o `DATABASE_PUBLIC_URL`.
+3. En tu **servicio de la app** (el que despliega el código): **Variables** → **Add variable** → **Add a variable from another service** y enlaza las variables del PostgreSQL (p. ej. `DATABASE_URL`).
 
-### Obligatorias (producción)
+El servidor usa `DATABASE_PUBLIC_URL` o `DATABASE_URL`; no hace falta definir `PG_HOST`, `PG_PORT`, etc. si ya viene en la URL.
 
-| Variable | Valor (ejemplo) |
-|----------|------------------|
-| `NODE_ENV` | `production` |
-| `JWT_SECRET` | Una cadena larga y aleatoria (32+ caracteres). **No** uses `cambiar-en-produccion`. |
-| `DATABASE_URL` o `DATABASE_PUBLIC_URL` | Lo da el plugin **PostgreSQL** de Railway. |
+## 3. Variables de entorno del servicio
 
-### CORS y dominio
+En el servicio de la aplicación (no en la base de datos), en **Variables**, añade al menos:
 
-| Variable | Valor |
-|----------|--------|
-| `ALLOWED_ORIGIN` | `https://www.callship.us` (tu dominio exacto) |
-| `FRONTEND_URL` | `https://www.callship.us` (para el enlace del correo de recuperar contraseña) |
+| Variable | Obligatoria | Descripción |
+|----------|-------------|-------------|
+| `NODE_ENV` | Recomendado | `production` |
+| `JWT_SECRET` | **Sí** | Cadena larga y aleatoria (p. ej. genera una con `openssl rand -hex 32`) |
+| `PORT` | No | Railway la asigna sola; el servidor la usa por defecto |
+| `DATABASE_URL` o `DATABASE_PUBLIC_URL` | Si usas PostgreSQL | La enlazas desde el plugin PostgreSQL |
+| `ALLOWED_ORIGIN` | Recomendado | Origen del frontend, p. ej. `https://tu-app.up.railway.app` (sin barra final). Varios: separados por coma |
+| `ADMIN_USERS` | Opcional | Usernames de admin separados por coma (default: `medinax6`) |
 
-### Correo (recuperar contraseña)
+### Opcionales (según lo que uses)
 
-Para que **“¿Olvidaste tu contraseña?”** envíe el correo con el enlace:
+- **Correo (SMTP):** `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM`, `FRONTEND_URL`
+- **OxaPay:** `OXAPAY_MERCHANT_API_KEY`, `OXAPAY_RETURN_URL`, `OXAPAY_CALLBACK_URL`, `OXAPAY_SANDBOX`, `OXAPAY_WEBHOOK_SECRET`
+- **Crypto (depósitos manuales):** `CRYPTO_BTC_ADDRESS`, `CRYPTO_ETH_ADDRESS`, `CRYPTO_USDT_TRC20_ADDRESS` o `CRYPTO_WALLETS` (JSON)
 
-| Variable | Valor |
-|----------|--------|
-| `SMTP_HOST` | Servidor SMTP (ej. `smtp.gmail.com`, `smtp.office365.com`, `smtp.sendgrid.net`) |
-| `SMTP_PORT` | `587` (TLS) o `465` (SSL) |
-| `SMTP_SECURE` | `false` si usas 587; `true` si usas 465 |
-| `SMTP_USER` | Usuario/correo del SMTP |
-| `SMTP_PASS` | Contraseña o “contraseña de aplicación” (Gmail/Outlook) |
-| `EMAIL_FROM` | Remitente que verá el usuario (opcional; si no, se usa `SMTP_USER`) |
+Para **producción con dominio propio** (p. ej. `https://www.callship.us`), pon:
 
-**Ejemplo Gmail:** crear una “Contraseña de aplicación” en la cuenta de Google y usar esa en `SMTP_PASS`.  
-**Ejemplo SendGrid:** usar `smtp.sendgrid.net`, usuario `apikey`, contraseña = tu API Key.
+- `ALLOWED_ORIGIN=https://www.callship.us`
+- `FRONTEND_URL=https://www.callship.us`
 
-### OxaPay
+Si el front se sirve desde el mismo dominio que la API (una sola app en Railway), no hace falta `VITE_API_URL`; la web usa `/api` en el mismo origen.
 
-| Variable | Valor |
-|----------|--------|
-| `OXAPAY_MERCHANT_API_KEY` | Tu Merchant API Key de OxaPay |
-| `OXAPAY_RETURN_URL` | `https://www.callship.us` |
-| `OXAPAY_CALLBACK_URL` | `https://www.callship.us/api/oxapay/callback` |
-| `OXAPAY_SANDBOX` | `false` en producción |
-| `OXAPAY_WEBHOOK_SECRET` | (Opcional) Mismo valor que configures en OxaPay para el webhook |
+## 4. Build y Start en Railway
 
-### Admin
+Con el `railway.toml` en la raíz del repo, Railway usará:
 
-| Variable | Valor |
-|----------|--------|
-| `ADMIN_USERS` | Usuarios admin separados por coma (ej. `medinax6`) |
+- **Build:** `npm install && npm run build`  
+  (instala deps, construye el dialer, copia a `server/public`, instala deps del server)
+- **Start:** `npm start`  
+  (ejecuta el servidor Node que escucha en `PORT` y sirve API + estáticos)
 
----
+No hace falta configurar nada más en el panel si el repo ya tiene `railway.toml`.
 
-## 2. Código para subir a Railway (build + deploy)
+## 5. Dominio y HTTPS
 
-Tu app en Railway tiene **root = `server`** y el front se sirve desde **`server/public`**. Hay que generar el build del dialer y copiarlo a `server/public` antes de subir.
+1. En el servicio → **Settings** → **Networking** → **Generate Domain**.
+2. Te dará una URL tipo `tu-app.up.railway.app`. Ya usa HTTPS.
+3. Si quieres tu propio dominio: **Custom Domain** y apunta el DNS (CNAME) a la URL que te indique Railway.
 
-### En tu máquina (PowerShell o CMD)
+## 6. Subir el código
 
-Abre la terminal en la raíz del proyecto **CallShip** (donde están las carpetas `dialer` y `server`).
+### Opción A: Desde GitHub
 
-```powershell
-# 1) Instalar dependencias del dialer (por si faltan)
-cd dialer
-npm install
+- Conectas el repo y cada push a la rama elegida puede disparar un nuevo deploy (según la configuración del proyecto).
 
-# 2) Build del frontend (genera dialer/dist)
-npm run build
-
-# 3) Volver a la raíz
-cd ..
-
-# 4) Copiar el build al servidor (server/public)
-#    Si public no existe, créala primero.
-if (-not (Test-Path server\public)) { New-Item -ItemType Directory -Path server\public }
-Remove-Item -Recurse -Force server\public\* -ErrorAction SilentlyContinue
-Copy-Item -Recurse -Force dialer\dist\* server\public\
-
-# 5) (Opcional) Marcar la versión del build para ver en /api/build-info
-Get-Date -Format "yyyy-MM-dd HH:mm" | Set-Content server\public\build.txt
-
-# 6) Instalar dependencias del servidor (incluye nodemailer)
-cd server
-npm install
-
-# 7) Subir a Git para que Railway despliegue
-cd ..
-git add .
-git status
-git commit -m "Deploy: recuperar contraseña por correo, paginación, seguridad, SMTP"
-git push
-```
-
-Si usas **Git Bash** o **bash** en lugar de PowerShell:
+### Opción B: Railway CLI
 
 ```bash
-cd dialer && npm install && npm run build && cd ..
-mkdir -p server/public
-rm -rf server/public/*
-cp -r dialer/dist/* server/public/
-date "+%Y-%m-%d %H:%M" > server/public/build.txt
-cd server && npm install && cd ..
-git add .
-git commit -m "Deploy: recuperar contraseña por correo, paginación, seguridad, SMTP"
-git push
+# Instalar CLI: https://docs.railway.app/develop/cli
+npm i -g @railway/cli
+
+# En la raíz del proyecto CallShip
+cd C:\Users\Shipe\OneDrive\Escritorio\CallShip
+railway login
+railway init   # enlaza proyecto existente o crea uno nuevo
+railway up    # sube y despliega
 ```
 
-### Qué hace Railway
+## 7. Comprobar que funciona
 
-- Railway detecta el push y despliega.
-- Si el **Root Directory** del servicio está en **`server`**, ejecutará `npm start` (o el comando que tengas) desde `server`.
-- Las variables que configuraste en Railway se inyectan como entorno.
-- El front (build en `server/public`) se sirve desde la misma app (Express).
+- Abre la URL del servicio (p. ej. `https://tu-app.up.railway.app`).
+- Deberías ver el login del dialer.
+- Prueba `https://tu-app.up.railway.app/api/ping`; debe responder OK (Railway usa este endpoint como healthcheck si está configurado).
 
----
+## Resumen mínimo para el primer deploy
 
-## 3. Comprobar después del deploy
+1. Proyecto nuevo en Railway.
+2. Añadir PostgreSQL y enlazar `DATABASE_URL` (o `DATABASE_PUBLIC_URL`) al servicio de la app.
+3. En el servicio de la app, variables: `NODE_ENV=production`, `JWT_SECRET=<valor largo aleatorio>`, y si quieres CORS: `ALLOWED_ORIGIN=https://tu-dominio.up.railway.app`.
+4. Conectar repo (o `railway up`) y desplegar.
 
-1. **Health:** `https://www.callship.us/api/health` → `{"ok":true,"service":"callship-server"}`.
-2. **Build:** `https://www.callship.us/api/build-info` → debe mostrar la fecha del `build.txt`.
-3. **Login** y **“¿Olvidaste tu contraseña?”** con un correo que exista en un perfil: debe llegar el correo con el enlace (revisa spam).
-4. **Enlace del correo:** abrirlo y restablecer contraseña; luego iniciar sesión con la nueva.
-
-Si el correo no llega, revisa en Railway los logs del servicio (errores de SMTP) y que `SMTP_*` y `FRONTEND_URL` estén bien definidos.
+El `railway.toml` en la raíz ya define build, start y healthcheck; no necesitas tocar la configuración de build/start en el dashboard salvo que quieras sobreescribirlas.

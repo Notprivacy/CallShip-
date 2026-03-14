@@ -994,6 +994,94 @@ button, input { font: inherit; }
   padding: 8px 0;
 }
 
+/* Panel código de respaldo tras registro */
+.cs-backup-code-panel{
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.cs-backup-warning{
+  background: rgba(234,179,8,0.15);
+  border: 1px solid rgba(234,179,8,0.5);
+  border-radius: 10px;
+  padding: 14px 16px;
+  color: #fef3c7;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.cs-backup-warning-icon{ font-size: 1.2em; }
+.cs-backup-warning strong{ color: #fcd34d; }
+.cs-backup-warning p{ margin: 8px 0 0; }
+.cs-backup-warning p:first-of-type{ margin-top: 6px; }
+.cs-backup-warning-danger{
+  color: #fca5a5 !important;
+  margin-top: 10px !important;
+}
+.cs-backup-warning-danger strong{ color: #ef4444; }
+.cs-backup-code-box{
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: rgba(0,0,0,0.25);
+  border-radius: 10px;
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,0.12);
+}
+.cs-backup-code-text{
+  font-family: ui-monospace, monospace;
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  word-break: break-all;
+  color: #e5e7eb;
+  user-select: all;
+}
+.cs-backup-copy{ margin-top: 0; }
+
+/* Panel registro exitoso — grande y llamativo */
+.cs-registration-success-panel{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 0;
+  text-align: center;
+}
+.cs-registration-success-icon{
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: #fff;
+  font-size: 40px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  box-shadow: 0 8px 24px rgba(34,197,94,0.4);
+}
+.cs-registration-success-title{
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+.cs-registration-success-text{
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.5;
+  color: rgba(229,231,235,0.95);
+  max-width: 320px;
+}
+.cs-registration-success-btn{
+  margin-top: 8px;
+  min-width: 180px;
+  font-size: 16px;
+  padding: 12px 24px;
+}
+
 @media (max-width: 980px){
   .cs-shell{ grid-template-columns: 1fr; }
   .cs-sidebar{ height: auto; position: relative; border-right: none; border-bottom: 1px solid var(--stroke); }

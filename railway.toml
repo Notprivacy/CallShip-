@@ -1,2 +1,15 @@
-# NO USAR con Root Directory vacío: el build falla en Railway.
-# Deja Railway con Root Directory = "server" y sube server/public tras "npm run build" en tu PC.
+# Configuración de despliegue en Railway
+# https://docs.railway.app/reference/build-and-start-commands
+
+[build]
+# Construye el frontend (dialer) y lo copia a server/public; instala dependencias del servidor
+buildCommand = "npm install && npm run build"
+
+[deploy]
+# Arranca el servidor (API + sirve el front desde /public)
+startCommand = "npm start"
+# Railway asigna PORT automáticamente; el servidor usa process.env.PORT
+healthcheckPath = "/api/ping"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3

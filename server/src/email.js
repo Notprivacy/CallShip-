@@ -1,5 +1,5 @@
 /**
- * Envío de correo (recuperar contraseña, etc.) vía SMTP.
+ * Envío de correo (recuperar contraseña) vía SMTP (Gmail, Outlook, etc.).
  * Variables: SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASS, EMAIL_FROM, FRONTEND_URL
  */
 const nodemailer = require('nodemailer');
@@ -31,17 +31,10 @@ function getTransporter() {
   return transporter;
 }
 
-/**
- * Envía el correo de recuperación de contraseña.
- * @param {string} to - Correo del destinatario
- * @param {string} resetToken - Token para el enlace
- * @param {string} [userName] - Nombre de usuario (opcional, para personalizar)
- * @returns {Promise<{ sent: boolean, error?: string }>}
- */
 async function sendPasswordResetEmail(to, resetToken, userName = '') {
   const trans = getTransporter();
   if (!trans) {
-    console.warn('[email] SMTP no configurado (SMTP_HOST, SMTP_USER, SMTP_PASS). No se envía correo.');
+    console.warn('[email] SMTP no configurado (SMTP_HOST, SMTP_USER, SMTP_PASS).');
     return { sent: false, error: 'Servidor de correo no configurado' };
   }
   const resetLink = `${FRONTEND_URL}/reset-password?token=${encodeURIComponent(resetToken)}`;
@@ -64,15 +57,9 @@ async function sendPasswordResetEmail(to, resetToken, userName = '') {
   <p style="font-size: 0.875rem; color: #9ca3af; margin-top: 32px;">CallShip Dialer</p>
 </body>
 </html>`;
-  const text = `Restablecer contraseña en CallShip\n\nHaz clic en el siguiente enlace (válido 1 hora):\n${resetLink}\n\nSi no solicitaste este cambio, ignora este correo.`;
+  const text = `Restablecer contraseña en CallShip\n\nEnlace (válido 1 hora):\n${resetLink}\n\nSi no solicitaste este cambio, ignora este correo.`;
   try {
-    await trans.sendMail({
-      from: FROM,
-      to,
-      subject,
-      text,
-      html,
-    });
+    await trans.sendMail({ from: FROM, to, subject, text, html });
     return { sent: true };
   } catch (err) {
     console.error('[email] Error enviando correo:', err.message);
