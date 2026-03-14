@@ -1766,13 +1766,12 @@ export default function Dialer({ user, token, onLogout }) {
                         <td style={{ textAlign: 'center' }}>
                           <button
                             type="button"
-                            className="cs-sip-status-toggle"
-                            style={{ cursor: 'pointer' }}
+                            className={`cs-sip-status-toggle ${st ? 'cs-sip-status-on' : 'cs-sip-status-off'}`}
                             onClick={() => toggleSipStatus(d, !st)}
                             title={st ? 'Desactivar (no podrá hacer llamadas)' : 'Activar (este será el único que podrá hacer llamadas)'}
                           >
-                            <span style={{ display: 'inline-flex', width: 42, height: 22, borderRadius: 999, border: '1px solid rgba(206,17,38,0.4)', background: st ? 'rgba(206,17,38,0.35)' : 'rgba(255,255,255,0.06)', padding: 2, alignItems: 'center' }}>
-                              <span style={{ width: 18, height: 18, borderRadius: 999, background: st ? '#CE1126' : 'rgba(255,255,255,0.35)', transform: `translateX(${st ? 18 : 0}px)`, transition: 'transform 160ms ease' }} />
+                            <span className="cs-sip-status-track">
+                              <span className="cs-sip-status-thumb" />
                             </span>
                           </button>
                         </td>

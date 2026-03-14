@@ -1037,13 +1037,40 @@ button, input { font: inherit; }
 }
 .cs-backup-copy{ margin-top: 0; }
 
-/* Toggle status SIP Devices - mismo rojo que Create */
+/* Toggle status SIP Devices - rojo igual que botón Create (#CE1126) */
 .cs-sip-status-toggle{
-  background: none;
-  border: none;
-  padding: 0;
-  margin: 0;
+  background: none !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
   font: inherit;
+  cursor: pointer;
+}
+.cs-sip-status-track{
+  display: inline-flex !important;
+  width: 42px;
+  height: 22px;
+  border-radius: 999px;
+  padding: 2px;
+  align-items: center;
+  border: 1px solid rgba(206,17,38,0.5) !important;
+  background: rgba(255,255,255,0.06) !important;
+  transition: background 0.2s ease;
+}
+.cs-sip-status-toggle.cs-sip-status-on .cs-sip-status-track{
+  background: rgba(206,17,38,0.35) !important;
+}
+.cs-sip-status-thumb{
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.35) !important;
+  transform: translateX(0);
+  transition: transform 0.16s ease, background 0.2s ease;
+}
+.cs-sip-status-toggle.cs-sip-status-on .cs-sip-status-thumb{
+  background: #CE1126 !important;
+  transform: translateX(18px);
 }
 
 /* Panel registro exitoso — grande y llamativo */
