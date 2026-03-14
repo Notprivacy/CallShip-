@@ -61,7 +61,15 @@ app.use('/api', apiLimiter);
 
 // Archivos estáticos desde /public (frontend build del dialer)
 const publicDir = path.join(__dirname, '..', 'public');
-app.use(express.static(publicDir));
+app.use(express.static(publicDir, {
+  maxAge: process.env.NODE_ENV === 'production' ? '1y' : 0,
+  setHeaders: (res, filePath) => {
+    const f = filePath.toLowerCase();
+    if (f.endsWith('index.html') || f.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    }
+  },
+}));
 // SPA: rutas no-API sirven index.html (para producción con frontend en /public)
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) return next();
@@ -70,6 +78,7 @@ app.get('*', (req, res, next) => {
   const p = path.join(publicDir, req.path);
   fs.stat(p, (err, stat) => {
     if (!err && stat && stat.isFile()) return next();
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
     res.sendFile(indexFile, (e) => { if (e) next(); });
   });
 });

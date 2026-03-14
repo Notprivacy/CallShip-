@@ -1073,6 +1073,18 @@ button, input { font: inherit; }
   transform: translateX(18px);
 }
 
+/* Badge para confirmar que la UI nueva está desplegada (SIP Devices) */
+.cs-ui-badge{
+  font-size: 10px;
+  font-weight: 700;
+  color: #CE1126;
+  background: rgba(206,17,38,0.2);
+  border: 1px solid rgba(206,17,38,0.5);
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+}
+
 /* Panel registro exitoso — grande y llamativo */
 .cs-registration-success-panel{
   display: flex;

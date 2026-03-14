@@ -32,9 +32,11 @@ if (fs.existsSync(dest)) {
 }
 copyRecursive(src, dest);
 
-// Marca de build para verificar en producción (abre https://www.callship.us/build.txt)
+// Marca de build para verificar en producción (abre /api/build-info)
 const buildId = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-fs.writeFileSync(path.join(dest, 'build.txt'), `CallShip frontend build\n${buildId}\n`, 'utf8');
+const commitSha = process.env.RAILWAY_GIT_COMMIT_SHA || process.env.VERCEL_GIT_COMMIT_SHA || process.env.GIT_COMMIT || '';
+const buildLine = commitSha ? `Build: ${buildId} | commit: ${commitSha.slice(0, 7)}` : `Build: ${buildId}`;
+fs.writeFileSync(path.join(dest, 'build.txt'), `CallShip frontend build\n${buildId}\n${commitSha ? commitSha + '\n' : ''}`, 'utf8');
 
 // Comentario en index.html para "Ver código fuente" en el navegador
 const indexPath = path.join(dest, 'index.html');
@@ -46,4 +48,4 @@ if (!indexHtml.includes('build:')) {
 
 console.log('Build del dialer copiado a server/public');
 console.log('Build ID:', buildId);
-console.log('Para producción: sube server/public a Git (ver DEPLOY-PASOS.txt) y luego cd server && npm start');
+if (commitSha) console.log('Commit:', commitSha.slice(0, 7));

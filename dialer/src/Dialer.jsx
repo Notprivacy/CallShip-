@@ -1638,6 +1638,7 @@ export default function Dialer({ user, token, onLogout }) {
           <section className="cs-card" style={{ marginTop: 16 }}>
             <div className="cs-section-head">
               <h3 style={{ margin: 0 }}>My Account / SIP Devices</h3>
+              <span className="cs-ui-badge" title="Si ves este badge, la versión con toggle rojo está desplegada">UI v2</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', marginTop: 14, flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
