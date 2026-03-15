@@ -38,13 +38,21 @@ CallShip/
 
 ## Próximos pasos
 
-- [ ] Implementar servidor (auth, usuarios, verificación de licencia).
-- [ ] Definir API que usará el dialer (login, listas, iniciar llamada, etc.).
-- [ ] Crear cliente dialer mínimo (login + lista + “marcar”).
-- [ ] Integrar proveedor de llamadas (ej. Twilio).
-- [ ] Añadir pasarela de pago (Stripe, PayPal) para vender suscripciones.
+- [x] Servidor (auth, usuarios, verificación de licencia, API).
+- [x] Cliente dialer (login, SIP devices, Caller ID, historial de llamadas).
+- [x] Servidor SIP por defecto = tu dominio (variable `CALLSHIP_SIP_SERVER`; el cliente no ve al proveedor).
+- [ ] Montar tu servidor SIP (Asterisk/FreeSWITCH) en tu dominio y tronco al proveedor (ver doc de admin).
+- [ ] Pasarela de pago (Stripe, PayPal) para vender licencias/suscripciones.
 
 ## Cómo ejecutar (cuando esté implementado)
 
 - **Servidor**: `cd server && npm install && npm run dev`
 - **Dialer**: `cd dialer && npm install && npm run dev`
+
+## Administrador: proveedor de minutos (callspoofing.org)
+
+Si el proveedor de minutos es callspoofing.org, ver **[docs/ADMIN_PROVEEDOR_CALLSPOOFING.md](docs/ADMIN_PROVEEDOR_CALLSPOOFING.md)** para:
+
+- Cómo es la conexión con el proveedor (tu dominio como en Mastersking).
+- Ejemplo paso a paso (tú, María, callspoofing.org).
+- **Flujo completo de implementación**: variable de entorno `CALLSHIP_SIP_SERVER`, tu servidor SIP (Asterisk/FreeSWITCH) en tu dominio y tronco al proveedor. Los clientes solo usan el dialer y MicroSIP; no ven al proveedor.

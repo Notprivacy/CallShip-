@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const jwt = require('jsonwebtoken');
-const { JWT_SECRET, safeError } = require('../config');
+const { JWT_SECRET, safeError, DEFAULT_SIP_SERVER } = require('../config');
 
 const MASKED_PASSWORD = '••••••••';
 
@@ -48,6 +48,7 @@ router.post('/', async (req, res) => {
   if (!sip_username || !String(sip_username).trim()) {
     return res.status(400).json({ ok: false, error: 'Username es obligatorio' });
   }
+  const effectiveServer = (sip_server && String(sip_server).trim()) || DEFAULT_SIP_SERVER || null;
   try {
     const username = String(sip_username).trim();
     const r = await db.pool.query(
@@ -58,7 +59,7 @@ router.post('/', async (req, res) => {
         req.user.userId,
         username,
         username,
-        sip_server || null,
+        effectiveServer,
         sip_password || null,
         caller_name || null,
         caller_number || null,
@@ -78,6 +79,7 @@ router.put('/:id', async (req, res) => {
   if (!id) return res.status(400).json({ ok: false, error: 'ID inválido' });
   const { sip_username, sip_password, caller_name, caller_number, voicemail, status, sip_server } = req.body || {};
   const newPassword = (sip_password && String(sip_password).trim() && String(sip_password).trim() !== MASKED_PASSWORD) ? String(sip_password).trim() : null;
+  const effectiveServer = (sip_server !== undefined && sip_server !== null && String(sip_server).trim() !== '') ? String(sip_server).trim() : (DEFAULT_SIP_SERVER || null);
   try {
     const existing = await db.pool.query('SELECT id, sip_password FROM sip_devices WHERE id = $1 AND user_id = $2', [id, req.user.userId]);
     if (existing.rows.length === 0) return res.status(404).json({ ok: false, error: 'Dispositivo no encontrado' });
@@ -99,7 +101,7 @@ router.put('/:id', async (req, res) => {
       [
         sip_username ? String(sip_username).trim() : null,
         sip_username ? String(sip_username).trim() : null,
-        sip_server ?? null,
+        effectiveServer !== undefined ? effectiveServer : null,
         passwordToSet,
         caller_name ?? null,
         caller_number ?? null,

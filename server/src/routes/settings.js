@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
-const { JWT_SECRET } = require('../config');
+const { JWT_SECRET, DEFAULT_SIP_SERVER } = require('../config');
 
 function authMiddleware(req, res, next) {
   const header = req.headers.authorization;
@@ -24,7 +24,12 @@ router.get('/', (req, res) => {
   res.json({
     ok: true,
     settings: {
-      sip: { host: 'sip.tu-dominio.com', username: req.user.username, password: '••••••••' },
+      sip: {
+        host: DEFAULT_SIP_SERVER || 'sip.tu-dominio.com',
+        defaultServer: DEFAULT_SIP_SERVER || '',
+        username: req.user.username,
+        password: '••••••••',
+      },
       dialer: { timezone: 'America/Santo_Domingo', language: 'es' },
       security: { twoFactor: false },
     },

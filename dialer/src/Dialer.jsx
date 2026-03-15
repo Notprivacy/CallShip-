@@ -426,7 +426,7 @@ export default function Dialer({ user, token, onLogout }) {
     if (active === 'transactions') loadTransactions();
     if (active === 'admin-customers') { loadAdminCustomers(); loadAdminPendingDeposits(); }
     if (active === 'account-profile') loadProfile();
-    if (active === 'account-sipdevices') loadSipDevices();
+    if (active === 'account-sipdevices') { loadSipDevices(); loadSettings(); }
   }, [active]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -1657,7 +1657,7 @@ export default function Dialer({ user, token, onLogout }) {
                       sip_password: '',
                       status: true,
                       voicemail: true,
-                      sip_server: '',
+                      sip_server: settings?.sip?.defaultServer || settings?.sip?.host || '',
                       code: '',
                       mail_to: '',
                       attach_file: true,
@@ -1750,7 +1750,7 @@ export default function Dialer({ user, token, onLogout }) {
                                 caller_number: d.caller_number || '',
                                 voicemail: vm,
                                 status: st,
-                                sip_server: d.sip_server || '',
+                                sip_server: d.sip_server || settings?.sip?.defaultServer || settings?.sip?.host || '',
                               }));
                               setSipModalOpen(true);
                             }}
@@ -1812,6 +1812,20 @@ export default function Dialer({ user, token, onLogout }) {
                     <div style={{ border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: 14 }}>
                       <div style={{ fontWeight: 700, marginBottom: 12 }}>Device Information</div>
                       <div style={{ display: 'grid', gap: 10 }}>
+                        <div>
+                          <div style={{ fontSize: 12, color: 'rgba(229,231,235,0.65)' }}>SIP Server / Domain</div>
+                          <input
+                            className="cs-field"
+                            value={sipEdit.sip_server}
+                            onChange={(e) => setSipEdit((p) => ({ ...p, sip_server: e.target.value }))}
+                            readOnly={!!(settings?.sip?.defaultServer)}
+                            placeholder="Ej. callship.com"
+                            title={settings?.sip?.defaultServer ? 'Servidor configurado por el sistema (tu dominio)' : ''}
+                          />
+                          {settings?.sip?.defaultServer && (
+                            <div style={{ fontSize: 11, color: 'rgba(229,231,235,0.5)', marginTop: 4 }}>Usa este valor en MicroSIP como SIP Server y Domain.</div>
+                          )}
+                        </div>
                         <div><div style={{ fontSize: 12, color: 'rgba(229,231,235,0.65)' }}>Username *</div><input className="cs-field" value={sipEdit.sip_username} onChange={(e) => setSipEdit((p) => ({ ...p, sip_username: e.target.value }))} /></div>
                         <div><div style={{ fontSize: 12, color: 'rgba(229,231,235,0.65)' }}>Password *</div><input className="cs-field" value={sipEdit.sip_password} onChange={(e) => setSipEdit((p) => ({ ...p, sip_password: e.target.value }))} /></div>
                         <div><div style={{ fontSize: 12, color: 'rgba(229,231,235,0.65)' }}>Caller Name</div><input className="cs-field" value={sipEdit.caller_name} onChange={(e) => setSipEdit((p) => ({ ...p, caller_name: e.target.value }))} /></div>
